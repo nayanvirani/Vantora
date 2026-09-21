@@ -82,13 +82,12 @@ Checkout UI extensions for Plus stores only (F-32, F-39–F-45), eligibility scr
 - Polaris React (`@shopify/polaris` v13) is deprecated upstream in favor of Polaris
   web components — kept it because it matches the spec's "Polaris and App Bridge"
   wording and is still functional, but a future pass may want to migrate.
-- `railway.json` (Config as Code) is deprecated by Railway in favor of
+- `backend/railway.json` (Config as Code) is deprecated by Railway in favor of
   `.railway/railway.ts` (Infrastructure as Code); it works until **2026-12-01**. Run
   `railway config migrate` before then.
-- Dockerfile uses `php artisan serve`-free nginx+php-fpm+supervisord instead of a
-  managed base image — works, but if `docker/nginx.conf.template` or
-  `docker/supervisord.conf` ever need real production hardening (rate limits, gzip,
-  worker tuning), that's manual.
+- No Dockerfile — Railway's Railpack builder handles PHP/Laravel + the Vite frontend
+  build natively. If deep runtime tuning is ever needed (custom nginx/php-fpm config),
+  that's the point to revisit this decision, but it's deliberately not the default.
 - Cart/theme content isn't actually scanned (see Phase 2 note above) — the audit is
   presence-of-active-config only, a defensible v1 but not what section 4.1/F-01
   describes.

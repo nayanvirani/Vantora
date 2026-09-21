@@ -1,15 +1,14 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="shopify-api-key" content="d1d5b3a6a9a3e2a96d71715bc6a13a84" />
+    <meta name="shopify-api-key" content="{{ config('shopify.api_key') }}" />
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <title>Vantora</title>
-  </head>
-  <body>
+    @vite(['resources/css/app.css', 'resources/js/app.tsx'])
+</head>
+<body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+</body>
 </html>
