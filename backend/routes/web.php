@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\ShopifyAuthController;
 use App\Http\Controllers\EmbeddedAppController;
 use App\Http\Controllers\PixelEventController;
+use App\Http\Controllers\PostPurchaseController;
 use App\Http\Controllers\ProxyController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,12 @@ Route::prefix('apps/vantora')->middleware('shopify.proxy')->group(function () {
     Route::get('/recommendations', [ProxyController::class, 'recommendations']);
     Route::get('/fbt', [ProxyController::class, 'frequentlyBoughtTogether']);
 });
+
+// Post-purchase extension backend (extensions/post-purchase-upsell). Public
+// like /pixel/events -- the post-purchase sandbox can't attach a session
+// token either. UNTESTED, see PostPurchaseController docblock.
+Route::post('/post-purchase/best-offer', [PostPurchaseController::class, 'bestOffer'])
+    ->middleware('throttle:60,1');
 
 // Web Pixel ingestion (extensions/vantora-pixel). Public and unauthenticated
 // -- the pixel sandbox can't attach a session token or app-proxy signature

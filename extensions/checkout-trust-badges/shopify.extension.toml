@@ -1,0 +1,32 @@
+# F-39 Checkout Trust Badges. Only renders in checkout steps on Shopify
+# Plus stores (spec section 2) -- non-Plus merchants see the eligibility
+# message in the admin's Checkout screen instead of this extension.
+# UNTESTED: no Plus dev store available in this environment to verify
+# rendering/settings against a real checkout.
+api_version = "2026-07"
+
+[[extensions]]
+name = "t:name"
+handle = "checkout-trust-badges"
+type = "ui_extension"
+uid = "d1401d67-f034-bfcd-53f5-850306788ceed738c0b8"
+
+[[extensions.targeting]]
+module = "./src/Checkout.jsx"
+target = "purchase.checkout.block.render"
+
+[extensions.settings]
+  [[extensions.settings.fields]]
+  key = "badge_1_label"
+  type = "single_line_text_field"
+  name = "Badge 1 label"
+
+  [[extensions.settings.fields]]
+  key = "badge_2_label"
+  type = "single_line_text_field"
+  name = "Badge 2 label"
+
+  [[extensions.settings.fields]]
+  key = "badge_3_label"
+  type = "single_line_text_field"
+  name = "Badge 3 label"

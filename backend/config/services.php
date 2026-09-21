@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // F-19 AI Product Optimizer
+    'ai_provider' => [
+        'key' => env('AI_PROVIDER_API_KEY'),
+        'model' => env('AI_PROVIDER_MODEL', 'claude-sonnet-5'),
+    ],
+
 ];
