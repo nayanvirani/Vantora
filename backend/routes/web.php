@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\ShopifyAuthController;
 use App\Http\Controllers\EmbeddedAppController;
+use App\Http\Controllers\PixelEventController;
+use App\Http\Controllers\ProxyController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,7 +28,20 @@ Route::prefix('webhooks/shopify')->group(function () {
     Route::post('/shop-redact', [WebhookController::class, 'shopRedact']);
 });
 
-// Embedded admin app entry point. The actual UI is a static SPA build
-// (Polaris + App Bridge) served from public/app/, this just ensures the
-// shop/host query params survive straight to index.html.
+// Shopify App Proxy: storefront theme blocks call these at
+// https://{shop}/apps/vantora/* (signature-verified, see shopify.app.toml
+// [app_proxy] and VerifyShopifyAppProxySignature).
+Route::prefix('apps/vantora')->middleware('shopify.proxy')->group(function () {
+    Route::get('/recommendations', [ProxyController::class, 'recommendations']);
+    Route::get('/fbt', [ProxyController::class, 'frequentlyBoughtTogether']);
+});
+
+// Web Pixel ingestion (extensions/vantora-pixel). Public and unauthenticated
+// -- the pixel sandbox can't attach a session token or app-proxy signature
+// -- so it's rate-limited instead.
+Route::post('/pixel/events', [PixelEventController::class, 'store'])
+    ->middleware('throttle:120,1');
+
+// Embedded admin app entry point: resources/views/app.blade.php, the
+// Polaris + App Bridge SPA built by Laravel's own Vite pipeline.
 Route::get('/', [EmbeddedAppController::class, 'show'])->name('embedded.entry');

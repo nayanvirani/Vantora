@@ -25,9 +25,15 @@
   .vantora-trust-badges__item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 </style>
 
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script>
+  if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'trust_badges');
+</script>
+
 {% schema %}
 {
   "name": "Vantora: Trust Badges",
+  "target": "section",
   "settings": [
     { "type": "select", "id": "layout", "label": "Layout", "default": "row",
       "options": [ { "value": "row", "label": "Row" }, { "value": "stacked", "label": "Stacked" } ] },

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\VerifyShopifyAppProxySignature;
 use App\Http\Middleware\VerifyShopifySessionToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,10 +17,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
             'webhooks/*',
+            'apps/*',
+            'pixel/*',
         ]);
 
         $middleware->alias([
             'shopify.session' => VerifyShopifySessionToken::class,
+            'shopify.proxy' => VerifyShopifyAppProxySignature::class,
         ]);
 
         $middleware->trustProxies(at: '*');

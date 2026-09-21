@@ -1,0 +1,19 @@
+query CartTransformRunInput {
+  cart {
+    lines {
+      id
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            metafield(namespace: "$app:bundle-components", key: "components") {
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+}

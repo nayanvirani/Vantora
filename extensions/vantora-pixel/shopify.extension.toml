@@ -1,0 +1,16 @@
+name = "vantora-pixel"
+type = "web_pixel_extension"
+uid = "e78a540f-c3b5-2943-8ebb-8700ff132da40bad9697"
+
+runtime_context = "strict"
+
+[settings]
+type = "object"
+
+[settings.fields.accountID]
+name = "Account ID"
+description = "Account ID"
+type = "single_line_text_field"
+validations =  [
+  { name = "min", value = "1" }
+]

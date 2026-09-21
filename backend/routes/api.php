@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuditController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FeatureConfigController;
+use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Api\ShopController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,4 +28,8 @@ Route::middleware('shopify.session')->group(function () {
     Route::post('/feature-configs/{featureConfig}/activate', [FeatureConfigController::class, 'activate']);
     Route::post('/feature-configs/{featureConfig}/deactivate', [FeatureConfigController::class, 'deactivate']);
     Route::delete('/feature-configs/{featureConfig}', [FeatureConfigController::class, 'destroy']);
+
+    Route::get('/recipes', [RecipeController::class, 'index']);
+    Route::post('/recipes/{key}/preview', [RecipeController::class, 'preview']);
+    Route::post('/recipes/{key}/apply', [RecipeController::class, 'apply']);
 });

@@ -22,10 +22,13 @@
   .vantora-shipping-bar__fill { height: 100%; background: var(--vantora-bar-fill, #1a7f37); transition: width .3s ease; }
 </style>
 
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
 <script>
   (function () {
     var el = document.getElementById('vantora-shipping-bar');
     if (!el) return;
+
+    if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'shipping_bar');
 
     var thresholdCents = parseInt(el.dataset.thresholdCents, 10) || 0;
     var progressTemplate = {{ block.settings.progress_message | json }};
@@ -64,7 +67,7 @@
 
 {% schema %}
 {
-  "name": "Vantora: Free Shipping Bar",
+  "name": "Vantora: Shipping Bar",
   "target": "body",
   "settings": [
     { "type": "number", "id": "threshold", "label": "Free shipping threshold", "default": 50 },

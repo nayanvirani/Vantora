@@ -1,0 +1,36 @@
+{
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "discountNode": {
+        "metafield": {
+          "value": "{\"buyQuantity\":2,\"buyProductIds\":[\"gid://shopify/Product/1\"],\"getDiscountPercentage\":100,\"message\":\"Buy 2 get 1 free\"}"
+        }
+      },
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 3,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": { "id": "gid://shopify/Product/1" }
+            }
+          }
+        ]
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "message": "Buy 2 get 1 free",
+          "targets": [{ "cartLine": { "id": "gid://shopify/CartLine/1", "quantity": 1 } }],
+          "value": { "percentage": { "value": 100 } }
+        }
+      ]
+    }
+  }
+}

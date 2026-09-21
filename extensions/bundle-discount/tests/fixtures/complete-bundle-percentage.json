@@ -1,0 +1,50 @@
+{
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "discountNode": {
+        "metafield": {
+          "value": "{\"components\":[{\"productId\":\"gid://shopify/Product/1\",\"quantity\":1},{\"productId\":\"gid://shopify/Product/2\",\"quantity\":1}],\"discountType\":\"percentage\",\"discountValue\":15,\"message\":\"Bundle discount applied\"}"
+        }
+      },
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 1,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": { "id": "gid://shopify/Product/1" }
+            }
+          },
+          {
+            "id": "gid://shopify/CartLine/2",
+            "quantity": 1,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/2",
+              "product": { "id": "gid://shopify/Product/2" }
+            }
+          }
+        ]
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "message": "Bundle discount applied",
+          "targets": [{ "cartLine": { "id": "gid://shopify/CartLine/1", "quantity": 1 } }],
+          "value": { "percentage": { "value": 15 } }
+        },
+        {
+          "message": "Bundle discount applied",
+          "targets": [{ "cartLine": { "id": "gid://shopify/CartLine/2", "quantity": 1 } }],
+          "value": { "percentage": { "value": 15 } }
+        }
+      ]
+    }
+  }
+}

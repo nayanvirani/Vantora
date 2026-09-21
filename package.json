@@ -1,0 +1,21 @@
+{
+  "name": "vantora",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "shopify": "shopify"
+  },
+  "devDependencies": {
+    "@shopify/cli": "^3.94.3"
+  },
+  "trustedDependencies": [
+    "@shopify/plugin-cloudflare"
+  ],
+  "resolutions": {
+    "@oclif/core": "^4.5.4",
+    "undici": "6.22.0"
+  },
+  "dependencies": {
+    "@shopify/web-pixels-extension": "^2.18.0"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "discountNode": {
+        "metafield": {
+          "value": "{\"tiers\":[{\"minQuantity\":2,\"percentage\":10},{\"minQuantity\":3,\"percentage\":15}],\"productIds\":[],\"message\":\"Buy more, save more\"}"
+        }
+      },
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 3,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": { "id": "gid://shopify/Product/1" }
+            }
+          },
+          {
+            "id": "gid://shopify/CartLine/2",
+            "quantity": 1,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/2",
+              "product": { "id": "gid://shopify/Product/2" }
+            }
+          }
+        ]
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "message": "Buy more, save more",
+          "targets": [{ "cartLine": { "id": "gid://shopify/CartLine/1" } }],
+          "value": { "percentage": { "value": 15 } }
+        }
+      ]
+    }
+  }
+}

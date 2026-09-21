@@ -1,0 +1,46 @@
+{
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "discountNode": {
+        "metafield": {
+          "value": "{\"trigger\":{\"type\":\"spend_threshold\",\"amount\":100},\"giftVariantId\":\"gid://shopify/ProductVariant/999\",\"discountPercentage\":100,\"message\":\"You've earned a free gift!\"}"
+        }
+      },
+      "cart": {
+        "cost": { "subtotalAmount": { "amount": "120.00" } },
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 1,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": { "id": "gid://shopify/Product/1" }
+            }
+          },
+          {
+            "id": "gid://shopify/CartLine/2",
+            "quantity": 1,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/999",
+              "product": { "id": "gid://shopify/Product/999" }
+            }
+          }
+        ]
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "message": "You've earned a free gift!",
+          "targets": [{ "cartLine": { "id": "gid://shopify/CartLine/2", "quantity": 1 } }],
+          "value": { "percentage": { "value": 100 } }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,27 @@
+query RunInput {
+  discountNode {
+    metafield(namespace: "$app:free-gift-discount", key: "function-configuration") {
+      value
+    }
+  }
+  cart {
+    cost {
+      subtotalAmount {
+        amount
+      }
+    }
+    lines {
+      id
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            id
+          }
+        }
+      }
+    }
+  }
+}

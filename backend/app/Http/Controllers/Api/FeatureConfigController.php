@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FeatureConfig;
+use App\Services\FeatureActivationService;
 use App\Services\PlanGateService;
 use Illuminate\Http\Request;
 
 class FeatureConfigController extends Controller
 {
-    public function __construct(protected PlanGateService $planGate)
+    public function __construct(protected PlanGateService $planGate, protected FeatureActivationService $activation)
     {
     }
 
@@ -91,21 +92,15 @@ class FeatureConfigController extends Controller
         $shop = $request->attributes->get('shop');
         $this->authorizeShop($request, $featureConfig);
 
-        if ($featureConfig->status === 'active') {
-            return response()->json($featureConfig);
+        $result = $this->activation->activate($shop, $featureConfig);
+
+        if (! $result['ok']) {
+            $status = ! empty($result['upgrade_required']) ? 403 : 502;
+
+            return response()->json($result, $status);
         }
 
-        if (! $this->planGate->canActivateFeature($shop, $featureConfig->type)) {
-            return response()->json([
-                'message' => "You've reached your Starter plan limit. Upgrade to Pro to unlock unlimited tools, funnels and checkout extensions.",
-                'upgrade_required' => true,
-            ], 403);
-        }
-
-        $featureConfig->update(['status' => 'active']);
-        $this->planGate->incrementUsage($shop, $featureConfig->type);
-
-        return response()->json($featureConfig);
+        return response()->json($featureConfig->fresh());
     }
 
     public function deactivate(Request $request, FeatureConfig $featureConfig)
@@ -113,13 +108,9 @@ class FeatureConfigController extends Controller
         $shop = $request->attributes->get('shop');
         $this->authorizeShop($request, $featureConfig);
 
-        if ($featureConfig->status === 'active') {
-            $this->planGate->decrementUsage($shop, $featureConfig->type);
-        }
+        $this->activation->deactivate($shop, $featureConfig);
 
-        $featureConfig->update(['status' => 'paused']);
-
-        return response()->json($featureConfig);
+        return response()->json($featureConfig->fresh());
     }
 
     public function destroy(Request $request, FeatureConfig $featureConfig)
@@ -128,7 +119,7 @@ class FeatureConfigController extends Controller
         $this->authorizeShop($request, $featureConfig);
 
         if ($featureConfig->status === 'active') {
-            $this->planGate->decrementUsage($shop, $featureConfig->type);
+            $this->activation->deactivate($shop, $featureConfig);
         }
 
         $featureConfig->delete();

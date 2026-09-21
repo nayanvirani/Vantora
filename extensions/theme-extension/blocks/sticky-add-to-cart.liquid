@@ -14,8 +14,9 @@
     style="--vantora-atc-bg: {{ block.settings.background_color }}; --vantora-atc-text: {{ block.settings.text_color }}; display: none;"
     {{ block.shopify_attributes }}
   >
-    <form method="post" action="/cart/add" class="vantora-sticky-atc__form">
+    <form method="post" action="{{ routes.cart_add_url }}" class="vantora-sticky-atc__form">
       <input type="hidden" name="id" id="vantora-sticky-atc-variant-id" value="{{ product.selected_or_first_available_variant.id }}">
+      <input type="hidden" name="properties[_vantora_source]" value="sticky_atc">
 
       {% if block.settings.show_image %}
         <img
@@ -80,10 +81,13 @@
     }
   </style>
 
+  <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
   <script>
     (function () {
       var bar = document.getElementById('vantora-sticky-atc');
       if (!bar) return;
+
+      if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'sticky_atc');
 
       var trigger = bar.dataset.scrollTrigger === 'true';
       var atcForm = document.querySelector('form[action^="/cart/add"]:not(.vantora-sticky-atc__form)');
@@ -107,6 +111,7 @@
 
       bar.querySelector('.vantora-sticky-atc__form').addEventListener('submit', function (e) {
         e.preventDefault();
+        if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'sticky_atc');
         var formData = new FormData(this);
         fetch('/cart/add.js', { method: 'POST', body: formData })
           .then(function (res) { return res.json(); })
@@ -122,7 +127,7 @@
 
 {% schema %}
 {
-  "name": "Vantora: Sticky Add to Cart",
+  "name": "Vantora: Sticky ATC",
   "target": "body",
   "settings": [
     { "type": "select", "id": "position", "label": "Position", "default": "bottom",

@@ -1,0 +1,19 @@
+{
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "discountNode": {
+        "metafield": null
+      },
+      "cart": {
+        "cost": { "subtotalAmount": { "amount": "0" } },
+        "lines": []
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": []
+    }
+  }
+}

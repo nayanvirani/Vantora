@@ -32,6 +32,11 @@
   .vantora-faq__answer { margin-top: 8px; font-size: 14px; color: rgba(0,0,0,.7); }
 </style>
 
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script>
+  if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'faq');
+</script>
+
 {% comment %} FAQPage structured data for SEO {% endcomment %}
 <script type="application/ld+json">
 {
@@ -61,6 +66,7 @@
 {% schema %}
 {
   "name": "Vantora: Product FAQ",
+  "target": "section",
   "settings": [
     { "type": "text", "id": "heading", "label": "Heading", "default": "Frequently asked questions" },
     { "type": "text", "id": "question_1", "label": "Question 1" },
