@@ -1,0 +1,80 @@
+{% comment %}
+  F-12 Free Shipping Bar (app embed). Reads the live cart total client-side
+  via /cart.js so the progress bar stays accurate across AJAX cart updates.
+{% endcomment %}
+<div
+  id="vantora-shipping-bar"
+  class="vantora-shipping-bar vantora-shipping-bar--{{ block.settings.position }}"
+  data-threshold-cents="{{ block.settings.threshold | times: 100 | round }}"
+  style="--vantora-bar-bg: {{ block.settings.background_color }}; --vantora-bar-fill: {{ block.settings.progress_color }}; --vantora-bar-text: {{ block.settings.text_color }};"
+  {{ block.shopify_attributes }}
+>
+  <p class="vantora-shipping-bar__message"></p>
+  <div class="vantora-shipping-bar__track">
+    <div class="vantora-shipping-bar__fill" style="width: 0%"></div>
+  </div>
+</div>
+
+<style>
+  .vantora-shipping-bar { padding: 10px 16px; background: var(--vantora-bar-bg, #f4f4f4); color: var(--vantora-bar-text, #111); text-align: center; font-size: 14px; }
+  .vantora-shipping-bar__message { margin: 0 0 6px; }
+  .vantora-shipping-bar__track { height: 6px; border-radius: 3px; background: rgba(0,0,0,.1); overflow: hidden; }
+  .vantora-shipping-bar__fill { height: 100%; background: var(--vantora-bar-fill, #1a7f37); transition: width .3s ease; }
+</style>
+
+<script>
+  (function () {
+    var el = document.getElementById('vantora-shipping-bar');
+    if (!el) return;
+
+    var thresholdCents = parseInt(el.dataset.thresholdCents, 10) || 0;
+    var progressTemplate = {{ block.settings.progress_message | json }};
+    var successTemplate = {{ block.settings.success_message | json }};
+
+    function money(cents) {
+      return (cents / 100).toLocaleString(undefined, { style: 'currency', currency: (window.Shopify && Shopify.currency && Shopify.currency.active) || 'USD' });
+    }
+
+    function render(cartTotal) {
+      var fill = el.querySelector('.vantora-shipping-bar__fill');
+      var message = el.querySelector('.vantora-shipping-bar__message');
+      var pct = thresholdCents > 0 ? Math.min(100, (cartTotal / thresholdCents) * 100) : 100;
+      fill.style.width = pct + '%';
+
+      if (cartTotal >= thresholdCents) {
+        message.textContent = successTemplate;
+      } else {
+        var remaining = money(thresholdCents - cartTotal);
+        message.textContent = progressTemplate.replace('%%AMOUNT%%', remaining);
+      }
+    }
+
+    function refresh() {
+      fetch('/cart.js')
+        .then(function (res) { return res.json(); })
+        .then(function (cart) { render(cart.total_price); })
+        .catch(function (err) { console.error('Vantora shipping bar refresh failed', err); });
+    }
+
+    refresh();
+    document.addEventListener('vantora:cart-updated', refresh);
+    document.addEventListener('cart:refresh', refresh);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Vantora: Free Shipping Bar",
+  "target": "body",
+  "settings": [
+    { "type": "number", "id": "threshold", "label": "Free shipping threshold", "default": 50 },
+    { "type": "select", "id": "position", "label": "Position", "default": "top",
+      "options": [ { "value": "top", "label": "Page top" }, { "value": "cart", "label": "Cart page" }, { "value": "cart_drawer", "label": "Cart drawer" } ] },
+    { "type": "text", "id": "progress_message", "label": "Progress message", "default": "Add %%AMOUNT%% more for free shipping!" },
+    { "type": "text", "id": "success_message", "label": "Success message", "default": "You've unlocked free shipping!" },
+    { "type": "color", "id": "background_color", "label": "Background color", "default": "#f4f4f4" },
+    { "type": "color", "id": "progress_color", "label": "Progress color", "default": "#1a7f37" },
+    { "type": "color", "id": "text_color", "label": "Text color", "default": "#111111" }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,141 @@
+{% comment %}
+  F-11 Sticky Add to Cart (app embed). Appears via Theme editor > App embeds.
+  Renders only on product pages; reads live price/variant from the product
+  object so it works without a backend round-trip.
+{% endcomment %}
+{% if product %}
+  <div
+    id="vantora-sticky-atc"
+    class="vantora-sticky-atc vantora-sticky-atc--{{ block.settings.position }}"
+    data-position="{{ block.settings.position }}"
+    data-scroll-trigger="{{ block.settings.scroll_trigger }}"
+    data-show-desktop="{{ block.settings.show_desktop }}"
+    data-show-mobile="{{ block.settings.show_mobile }}"
+    style="--vantora-atc-bg: {{ block.settings.background_color }}; --vantora-atc-text: {{ block.settings.text_color }}; display: none;"
+    {{ block.shopify_attributes }}
+  >
+    <form method="post" action="/cart/add" class="vantora-sticky-atc__form">
+      <input type="hidden" name="id" id="vantora-sticky-atc-variant-id" value="{{ product.selected_or_first_available_variant.id }}">
+
+      {% if block.settings.show_image %}
+        <img
+          class="vantora-sticky-atc__image"
+          src="{{ product.featured_image | image_url: width: 80 }}"
+          alt="{{ product.featured_image.alt | escape }}"
+          width="40" height="40"
+          loading="lazy"
+        >
+      {% endif %}
+
+      <span class="vantora-sticky-atc__title">{{ product.title }}</span>
+
+      {% if block.settings.show_variant_selector and product.has_only_default_variant == false %}
+        <select name="id" class="vantora-sticky-atc__variant-select" aria-label="Variant">
+          {% for variant in product.variants %}
+            <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %}>
+              {{ variant.title }}
+            </option>
+          {% endfor %}
+        </select>
+      {% endif %}
+
+      {% if block.settings.show_price %}
+        <span class="vantora-sticky-atc__price">{{ product.selected_or_first_available_variant.price | money }}</span>
+      {% endif %}
+
+      <button type="submit" class="vantora-sticky-atc__button">
+        {{ block.settings.button_text | default: 'Add to cart' }}
+      </button>
+    </form>
+  </div>
+
+  <style>
+    .vantora-sticky-atc {
+      position: fixed;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--vantora-atc-bg, #111);
+      color: var(--vantora-atc-text, #fff);
+      box-shadow: 0 -2px 12px rgba(0,0,0,.12);
+    }
+    .vantora-sticky-atc--top { top: 0; }
+    .vantora-sticky-atc--bottom { bottom: 0; }
+    .vantora-sticky-atc__form { display: flex; align-items: center; gap: 12px; width: 100%; }
+    .vantora-sticky-atc__title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vantora-sticky-atc__button {
+      background: var(--vantora-atc-text, #fff);
+      color: var(--vantora-atc-bg, #111);
+      border: 0; border-radius: 6px; padding: 10px 18px; cursor: pointer; font-weight: 600;
+    }
+    @media (max-width: 749px) {
+      .vantora-sticky-atc[data-show-mobile="false"] { display: none !important; }
+    }
+    @media (min-width: 750px) {
+      .vantora-sticky-atc[data-show-desktop="false"] { display: none !important; }
+    }
+  </style>
+
+  <script>
+    (function () {
+      var bar = document.getElementById('vantora-sticky-atc');
+      if (!bar) return;
+
+      var trigger = bar.dataset.scrollTrigger === 'true';
+      var atcForm = document.querySelector('form[action^="/cart/add"]:not(.vantora-sticky-atc__form)');
+
+      function reveal() {
+        bar.style.display = 'flex';
+      }
+
+      if (!trigger) {
+        reveal();
+      } else if (atcForm && 'IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            bar.style.display = entry.isIntersecting ? 'none' : 'flex';
+          });
+        }, { threshold: 0 });
+        observer.observe(atcForm);
+      } else {
+        reveal();
+      }
+
+      bar.querySelector('.vantora-sticky-atc__form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        fetch('/cart/add.js', { method: 'POST', body: formData })
+          .then(function (res) { return res.json(); })
+          .then(function () {
+            document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
+            document.dispatchEvent(new CustomEvent('cart:refresh'));
+          })
+          .catch(function (err) { console.error('Vantora sticky ATC add failed', err); });
+      });
+    })();
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Vantora: Sticky Add to Cart",
+  "target": "body",
+  "settings": [
+    { "type": "select", "id": "position", "label": "Position", "default": "bottom",
+      "options": [ { "value": "top", "label": "Top" }, { "value": "bottom", "label": "Bottom" } ] },
+    { "type": "text", "id": "button_text", "label": "Button text", "default": "Add to cart" },
+    { "type": "color", "id": "background_color", "label": "Background color", "default": "#111111" },
+    { "type": "color", "id": "text_color", "label": "Text color", "default": "#ffffff" },
+    { "type": "checkbox", "id": "show_image", "label": "Show product image", "default": true },
+    { "type": "checkbox", "id": "show_price", "label": "Show price", "default": true },
+    { "type": "checkbox", "id": "show_variant_selector", "label": "Show variant selector", "default": true },
+    { "type": "checkbox", "id": "show_desktop", "label": "Show on desktop", "default": true },
+    { "type": "checkbox", "id": "show_mobile", "label": "Show on mobile", "default": true },
+    { "type": "checkbox", "id": "scroll_trigger", "label": "Only show after scrolling past the buy button", "default": true }
+  ]
+}
+{% endschema %}

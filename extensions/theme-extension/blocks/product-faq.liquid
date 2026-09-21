@@ -1,0 +1,84 @@
+{% comment %}
+  F-14 Product FAQ (app block). Accordion Q&A with FAQPage schema markup
+  for SEO. AI-suggested questions and per-product targeting are populated
+  from the app admin and synced to this block's settings/metafields.
+{% endcomment %}
+<div class="vantora-faq" {{ block.shopify_attributes }}>
+  {% if block.settings.heading != blank %}
+    <h3 class="vantora-faq__heading">{{ block.settings.heading }}</h3>
+  {% endif %}
+
+  <div class="vantora-faq__list">
+    {% for i in (1..8) %}
+      {% assign q_key = 'question_' | append: i %}
+      {% assign a_key = 'answer_' | append: i %}
+      {% assign question = block.settings[q_key] %}
+      {% assign answer = block.settings[a_key] %}
+      {% if question != blank and answer != blank %}
+        <details class="vantora-faq__item">
+          <summary class="vantora-faq__question">{{ question }}</summary>
+          <div class="vantora-faq__answer">{{ answer }}</div>
+        </details>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .vantora-faq { padding: 16px 0; }
+  .vantora-faq__heading { margin: 0 0 12px; }
+  .vantora-faq__item { border-bottom: 1px solid rgba(0,0,0,.08); padding: 10px 0; }
+  .vantora-faq__question { cursor: pointer; font-weight: 600; }
+  .vantora-faq__answer { margin-top: 8px; font-size: 14px; color: rgba(0,0,0,.7); }
+</style>
+
+{% comment %} FAQPage structured data for SEO {% endcomment %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {% assign first = true %}
+    {% for i in (1..8) %}
+      {% assign q_key = 'question_' | append: i %}
+      {% assign a_key = 'answer_' | append: i %}
+      {% assign question = block.settings[q_key] %}
+      {% assign answer = block.settings[a_key] %}
+      {% if question != blank and answer != blank %}
+        {% unless first %},{% endunless %}
+        {% assign first = false %}
+        {
+          "@type": "Question",
+          "name": {{ question | strip_html | json }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ answer | strip_html | json }} }
+        }
+      {% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+{% schema %}
+{
+  "name": "Vantora: Product FAQ",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Frequently asked questions" },
+    { "type": "text", "id": "question_1", "label": "Question 1" },
+    { "type": "textarea", "id": "answer_1", "label": "Answer 1" },
+    { "type": "text", "id": "question_2", "label": "Question 2" },
+    { "type": "textarea", "id": "answer_2", "label": "Answer 2" },
+    { "type": "text", "id": "question_3", "label": "Question 3" },
+    { "type": "textarea", "id": "answer_3", "label": "Answer 3" },
+    { "type": "text", "id": "question_4", "label": "Question 4" },
+    { "type": "textarea", "id": "answer_4", "label": "Answer 4" },
+    { "type": "text", "id": "question_5", "label": "Question 5" },
+    { "type": "textarea", "id": "answer_5", "label": "Answer 5" },
+    { "type": "text", "id": "question_6", "label": "Question 6" },
+    { "type": "textarea", "id": "answer_6", "label": "Answer 6" },
+    { "type": "text", "id": "question_7", "label": "Question 7" },
+    { "type": "textarea", "id": "answer_7", "label": "Answer 7" },
+    { "type": "text", "id": "question_8", "label": "Question 8" },
+    { "type": "textarea", "id": "answer_8", "label": "Answer 8" }
+  ]
+}
+{% endschema %}

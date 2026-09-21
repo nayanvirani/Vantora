@@ -1,0 +1,48 @@
+{% comment %}
+  F-13 Trust Badges (app block). Merchant adds this block to the product
+  or cart section via the theme editor.
+{% endcomment %}
+<div class="vantora-trust-badges vantora-trust-badges--{{ block.settings.layout }}" {{ block.shopify_attributes }}>
+  {% for i in (1..6) %}
+    {% assign icon_key = 'badge_' | append: i | append: '_icon' %}
+    {% assign label_key = 'badge_' | append: i | append: '_label' %}
+    {% assign icon = block.settings[icon_key] %}
+    {% assign label = block.settings[label_key] %}
+    {% if label != blank %}
+      <div class="vantora-trust-badges__item">
+        {% if icon %}
+          <img src="{{ icon | image_url: width: 48 }}" alt="" width="24" height="24" loading="lazy">
+        {% endif %}
+        <span>{{ label }}</span>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<style>
+  .vantora-trust-badges { display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 0; }
+  .vantora-trust-badges--stacked { flex-direction: column; }
+  .vantora-trust-badges__item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+</style>
+
+{% schema %}
+{
+  "name": "Vantora: Trust Badges",
+  "settings": [
+    { "type": "select", "id": "layout", "label": "Layout", "default": "row",
+      "options": [ { "value": "row", "label": "Row" }, { "value": "stacked", "label": "Stacked" } ] },
+    { "type": "image_picker", "id": "badge_1_icon", "label": "Badge 1 icon" },
+    { "type": "text", "id": "badge_1_label", "label": "Badge 1 label", "default": "Secure checkout" },
+    { "type": "image_picker", "id": "badge_2_icon", "label": "Badge 2 icon" },
+    { "type": "text", "id": "badge_2_label", "label": "Badge 2 label", "default": "Money-back guarantee" },
+    { "type": "image_picker", "id": "badge_3_icon", "label": "Badge 3 icon" },
+    { "type": "text", "id": "badge_3_label", "label": "Badge 3 label", "default": "Fast shipping" },
+    { "type": "image_picker", "id": "badge_4_icon", "label": "Badge 4 icon" },
+    { "type": "text", "id": "badge_4_label", "label": "Badge 4 label" },
+    { "type": "image_picker", "id": "badge_5_icon", "label": "Badge 5 icon" },
+    { "type": "text", "id": "badge_5_label", "label": "Badge 5 label" },
+    { "type": "image_picker", "id": "badge_6_icon", "label": "Badge 6 icon" },
+    { "type": "text", "id": "badge_6_label", "label": "Badge 6 label" }
+  ]
+}
+{% endschema %}

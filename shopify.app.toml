@@ -1,0 +1,39 @@
+# Shopify app configuration for Vantora.
+# client_id below is the Partner Dashboard app's API key (public, safe to commit).
+# The API secret is NEVER stored here -- it lives only in SHOPIFY_API_SECRET
+# on the Laravel backend (Railway env var / .env, both gitignored).
+
+client_id = "d1d5b3a6a9a3e2a96d71715bc6a13a84"
+name = "Vantora"
+application_url = "https://vantora-production.up.railway.app/"
+embedded = true
+
+[access_scopes]
+scopes = "read_products,write_products,read_themes,read_content,read_discounts,write_discounts,read_orders,write_orders,read_metaobjects,write_metaobjects"
+
+[auth]
+redirect_urls = [
+  "https://vantora-production.up.railway.app/auth/callback"
+]
+
+[webhooks]
+api_version = "2026-01"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/customers-data-request"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/redact"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/customers-redact"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["shop/redact"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/shop-redact"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = false
+include_config_on_deploy = true
