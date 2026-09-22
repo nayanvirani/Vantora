@@ -1,5 +1,5 @@
 {% comment %}
-  F-31 Cart Goal Tracker (Pro, app embed). Multi-tier progress bar, e.g.
+  F-31 Cart Goal Tracker (Pro, app block). Multi-tier progress bar, e.g.
   free shipping at $50, free gift at $100 -- the Pro upgrade of the
   single-tier Free Shipping Bar.
 
@@ -8,18 +8,14 @@
   for why. Renders nothing until the merchant has configured and activated
   this in the app.
 
-  Position: "cart page" is reliably known at render time (template ==
-  'cart'), so that mode is gated server-side. "cart_drawer" tries to
-  physically move into the theme's own drawer markup (see the script
-  below) -- verified against this store's actual theme (Dawn), not a
-  documented cross-theme standard, so it floats in place on any other theme.
+  target: "section" (not "body"/app embed) -- a merchant asked for manual
+  placement instead of the app guessing/gating where it should show. See
+  cart-upsell.liquid for the full reasoning. Added via Theme Editor >
+  (page) > Add section > Apps > add this block.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.goal_tracker.value %}
 
-{% if v and v.position == 'cart' and template != 'cart' %}
-  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
-{% elsif v %}
-  {% assign position = v.position | default: 'cart' %}
+{% if v %}
   {% assign tier_1_threshold = v.tier_1_threshold %}
   {% assign tier_1_label = v.tier_1_label %}
   {% assign tier_2_threshold = v.tier_2_threshold %}
@@ -32,7 +28,6 @@
 <div
   id="vantora-goal-tracker"
   class="vantora-goal-tracker"
-  data-position="{{ position }}"
   data-tiers='[
     {% if tier_1_threshold > 0 %}{"threshold": {{ tier_1_threshold }}, "label": {{ tier_1_label | json }}}{% endif %}
     {% if tier_2_threshold > 0 %},{"threshold": {{ tier_2_threshold }}, "label": {{ tier_2_label | json }}}{% endif %}
@@ -62,13 +57,6 @@
   (function () {
     var el = document.getElementById('vantora-goal-tracker');
     if (!el) return;
-
-    if (el.dataset.position === 'cart_drawer') {
-      // Best-effort: verified Dawn structure only (see free-shipping-bar.liquid) --
-      // falls back to floating in place on any other theme.
-      var drawerInner = document.querySelector('#CartDrawer .drawer__inner');
-      if (drawerInner) drawerInner.insertBefore(el, drawerInner.firstChild);
-    }
 
     var tiers;
     try {
@@ -128,9 +116,9 @@
 {% schema %}
 {
   "name": "Vantora: Goal Tracker",
-  "target": "body",
+  "target": "section",
   "settings": [
-    { "type": "paragraph", "content": "Configured in the Vantora app (Funnels > Cart Goal Tracker). This embed just needs to be switched on here." }
+    { "type": "paragraph", "content": "Configured in the Vantora app (Funnels > Cart Goal Tracker). Add this block wherever you want it to show -- commonly the cart page, via Add section > Apps." }
   ]
 }
 {% endschema %}

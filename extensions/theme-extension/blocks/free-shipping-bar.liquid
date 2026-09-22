@@ -1,5 +1,5 @@
 {% comment %}
-  F-12 Free Shipping Bar (app embed). Reads the live cart total client-side
+  F-12 Free Shipping Bar (app block). Reads the live cart total client-side
   via /cart.js so the progress bar stays accurate across AJAX cart updates.
 
   All content/appearance settings are configured in the Vantora app
@@ -7,20 +7,17 @@
   for why. Renders nothing until the merchant has configured and activated
   this in the app.
 
-  Position: "top" is a sitewide banner by design. "cart" is gated to the
-  cart page, same as cart-goal-tracker.liquid. "cart_drawer" tries to
-  physically move into the theme's own drawer markup (see the script
-  below) -- verified against this store's actual theme (Dawn):
-  `#CartDrawer .drawer__inner`. Not a documented cross-theme standard, so
-  it floats in place on any other theme instead.
+  target: "section" (not "body"/app embed) -- a merchant asked for manual
+  placement instead of the app guessing/gating where it should show. See
+  cart-upsell.liquid for the full reasoning (automatic placement meant
+  either a template=='cart' gate or Dawn-specific drawer injection,
+  neither a great fit for "just let the merchant put it wherever"). Added
+  via Theme Editor > (page) > Add section > Apps > add this block.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.shipping_bar.value %}
 
-{% if v and v.position == 'cart' and template != 'cart' %}
-  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
-{% elsif v %}
+{% if v %}
   {% assign threshold = v.threshold %}
-  {% assign position = v.position %}
   {% assign progress_message = v.progress_message %}
   {% assign success_message = v.success_message %}
   {% assign background_color = v.background_color %}
@@ -28,7 +25,7 @@
   {% assign text_color = v.text_color %}
 <div
   id="vantora-shipping-bar"
-  class="vantora-shipping-bar vantora-shipping-bar--{{ position }}"
+  class="vantora-shipping-bar"
   data-threshold-cents="{{ threshold | times: 100 | round }}"
   style="--vantora-bar-bg: {{ background_color }}; --vantora-bar-fill: {{ progress_color }}; --vantora-bar-text: {{ text_color }};"
   {{ block.shopify_attributes }}
@@ -51,13 +48,6 @@
   (function () {
     var el = document.getElementById('vantora-shipping-bar');
     if (!el) return;
-
-    if (el.classList.contains('vantora-shipping-bar--cart_drawer')) {
-      // Best-effort: verified Dawn structure only (see comment above) --
-      // falls back to floating in place on any other theme.
-      var drawerInner = document.querySelector('#CartDrawer .drawer__inner');
-      if (drawerInner) drawerInner.insertBefore(el, drawerInner.firstChild);
-    }
 
     if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'shipping_bar');
 
@@ -100,9 +90,9 @@
 {% schema %}
 {
   "name": "Vantora: Shipping Bar",
-  "target": "body",
+  "target": "section",
   "settings": [
-    { "type": "paragraph", "content": "Configured in the Vantora app (Storefront > Free Shipping Bar). This embed just needs to be switched on here." }
+    { "type": "paragraph", "content": "Configured in the Vantora app (Storefront > Free Shipping Bar). Add this block wherever you want it to show -- commonly the cart page, via Add section > Apps." }
   ]
 }
 {% endschema %}

@@ -129,18 +129,6 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
       {
         title: 'Appearance',
         fields: [
-          {
-            type: 'select',
-            key: 'position',
-            label: 'Position',
-            default: 'cart',
-            helpText: 'Cart page/drawer keeps it scoped to the cart; page top shows it on every page.',
-            options: [
-              { label: 'Cart page', value: 'cart' },
-              { label: 'Cart drawer', value: 'cart_drawer' },
-              { label: 'Page top (every page)', value: 'top' },
-            ],
-          },
           { type: 'color', key: 'background_color', label: 'Background color', default: '#f4f4f4' },
           { type: 'color', key: 'progress_color', label: 'Progress bar color', default: '#1a7f37' },
           { type: 'color', key: 'text_color', label: 'Text color', default: '#111111' },
@@ -243,17 +231,6 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
       {
         title: 'Appearance',
         fields: [
-          {
-            type: 'select',
-            key: 'position',
-            label: 'Where it shows',
-            default: 'cart',
-            helpText: 'Only ever shows on the cart page or cart drawer -- never on other pages.',
-            options: [
-              { label: 'Cart page', value: 'cart' },
-              { label: 'Cart drawer', value: 'cart_drawer' },
-            ],
-          },
           { type: 'color', key: 'background_color', label: 'Background color', default: '#f4f4f4' },
           { type: 'color', key: 'progress_color', label: 'Progress bar color', default: '#1a7f37' },
           { type: 'color', key: 'text_color', label: 'Text color', default: '#111111' },
@@ -279,17 +256,6 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
       {
         title: 'Appearance',
         fields: [
-          {
-            type: 'select',
-            key: 'position',
-            label: 'Where it shows',
-            default: 'cart',
-            helpText: 'Only ever shows on the cart page or cart drawer -- never on other pages.',
-            options: [
-              { label: 'Cart page', value: 'cart' },
-              { label: 'Cart drawer', value: 'cart_drawer' },
-            ],
-          },
           { type: 'color', key: 'accent_color', label: 'Accent color', default: '#111111' },
         ],
       },

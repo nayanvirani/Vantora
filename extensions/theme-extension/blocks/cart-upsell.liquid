@@ -1,38 +1,34 @@
 {% comment %}
-  F-28 Cart Upsell (Pro, app embed). Renders recommended add-ons in the
-  cart drawer/page. Picks come live from the app's public recommendations
-  endpoint (keyed by the current cart's product IDs, so they stay fresh
-  without a theme deploy). Heading/appearance/position are configured in
-  the Vantora app (Funnels > Cart Upsell), not here -- see
+  F-28 Cart Upsell (Pro, app block). Renders recommended add-ons wherever
+  the merchant places this block. Picks come live from the app's public
+  recommendations endpoint (keyed by the current cart's product IDs, so
+  they stay fresh without a theme deploy). Heading/appearance are
+  configured in the Vantora app (Funnels > Cart Upsell), not here -- see
   sticky-add-to-cart.liquid for why. Renders nothing until the merchant
   has configured and activated this in the app.
 
-  A merchant reported this always showing everywhere rather than staying
-  in the cart. "cart" is gated server-side (only renders when
-  template == 'cart', same as free-shipping-bar.liquid/
-  cart-goal-tracker.liquid). "cart_drawer" can't be gated that way (a
-  drawer can open from any page in most themes), so instead the script
-  below tries to physically relocate this block into the theme's own
-  drawer markup once it's found -- verified against this store's actual
-  theme (Dawn): `<cart-drawer>` custom element, contents inside
-  `#CartDrawer .drawer__inner`. That's Dawn-specific, not a documented
-  cross-theme standard (Shopify defines no such standard), so on any
-  other theme it falls back to floating in place, same as before.
+  target: "section" (not "body"/app embed) -- a merchant asked for manual
+  placement instead of the app guessing where "the cart" is: automatic
+  placement meant either gating by template (cart page only, confirmed
+  working) or trying to detect and inject into a specific theme's own
+  drawer markup (confirmed Dawn-specific, not a cross-theme standard --
+  Shopify defines no such API). This block is added the same way as any
+  other app block: Theme Editor > (page) > Add section > Apps > add this
+  block -- works on the cart page on any Online Store 2.0 theme. Most
+  themes, including Dawn, don't expose their cart drawer as its own
+  editable section, so drawer placement stays theme-dependent; the cart
+  page is the reliable, universal option.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.cart_upsell.value %}
 
-{% if v and v.position == 'cart' and template != 'cart' %}
-  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
-{% elsif v %}
+{% if v %}
   {% assign heading = v.heading %}
   {% assign max_items = v.max_items %}
   {% assign accent_color = v.accent_color %}
-  {% assign position = v.position | default: 'cart' %}
 <div
   id="vantora-cart-upsell"
   class="vantora-cart-upsell"
   data-max-items="{{ max_items }}"
-  data-position="{{ position }}"
   style="--vantora-upsell-accent: {{ accent_color }};"
   {{ block.shopify_attributes }}
 >
@@ -67,13 +63,6 @@
   (function () {
     var root = document.getElementById('vantora-cart-upsell');
     if (!root) return;
-
-    if (root.dataset.position === 'cart_drawer') {
-      // Best-effort: known Dawn structure only (see comment above) -- if
-      // it's not found, this stays where the app embed already rendered it.
-      var drawerInner = document.querySelector('#CartDrawer .drawer__inner');
-      if (drawerInner) drawerInner.appendChild(root);
-    }
 
     var maxItems = parseInt(root.dataset.maxItems, 10) || 3;
     var template = document.getElementById('vantora-cart-upsell-item-template');
@@ -129,9 +118,9 @@
 {% schema %}
 {
   "name": "Vantora: Cart Upsell",
-  "target": "body",
+  "target": "section",
   "settings": [
-    { "type": "paragraph", "content": "Configured in the Vantora app (Funnels > Cart Upsell). This embed just needs to be switched on here." }
+    { "type": "paragraph", "content": "Configured in the Vantora app (Funnels > Cart Upsell). Add this block wherever you want it to show -- commonly the cart page, via Add section > Apps." }
   ]
 }
 {% endschema %}
