@@ -79,3 +79,52 @@ export type DashboardData = {
   last_audit_at: string | null;
   monitoring: unknown;
 };
+
+export type FeatureConfig = {
+  id: number;
+  type: string;
+  name: string | null;
+  status: 'draft' | 'active' | 'paused';
+  settings: Record<string, unknown>;
+  targeting: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type Recipe = {
+  id: number;
+  key: string;
+  goal: string;
+  items: Array<{ type: string; name: string; settings: Record<string, unknown> }>;
+};
+
+export type RecipePreview = {
+  recipe: Recipe;
+  items: Array<{ type: string; name: string; settings: Record<string, unknown>; allowed: boolean }>;
+  blocked_count: number;
+};
+
+export type AnalyticsData = {
+  range_days: number;
+  totals: { impressions: number; clicks: number; orders: number; revenue: number };
+  by_feature?: Array<{
+    type: string;
+    name: string | null;
+    impressions: number;
+    clicks: number;
+    orders: number;
+    revenue: number;
+  }>;
+};
+
+export type ScoreHistoryPoint = { id: number; score_total: number; finished_at: string };
+
+export type AiJob = {
+  id: number;
+  product_id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'approved' | 'discarded';
+  input: { title?: string; description?: string; productType?: string } | null;
+  output: { title?: string; description?: string; bullets?: string[]; faq?: Array<{ question: string; answer: string }>; error?: string } | null;
+  created_at: string;
+};
+
+export type AiUsage = { plan: string; remaining: number; cap: number };
