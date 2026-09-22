@@ -262,27 +262,6 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
     ],
   },
 
-  fbt: {
-    preview: 'upsell_list',
-    sections: [
-      {
-        title: 'Content',
-        fields: [
-          { type: 'text', key: 'heading', label: 'Heading', default: 'Frequently bought together' },
-          { type: 'text', key: 'button_text', label: 'Button text', default: 'Add all to cart' },
-        ],
-      },
-      {
-        title: 'Products',
-        fields: [
-          { type: 'product', key: 'trigger_product_id', label: 'Show on this product', helpText: 'The product page this set appears on.' },
-          { type: 'picks', key: 'picks', label: 'Suggested products' },
-        ],
-      },
-      { title: 'Appearance', fields: [{ type: 'color', key: 'accent_color', label: 'Accent color', default: '#111111' }] },
-    ],
-  },
-
   quantity_discount: {
     preview: 'discount_tag',
     sections: [

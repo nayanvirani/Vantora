@@ -55,7 +55,6 @@ return [
     // Modules only available on the Pro plan regardless of count.
     'pro_only_modules' => [
         'cart_upsell',
-        'fbt',
         'goal_tracker',
         'post_purchase_upsell',
         'thank_you_offers',

@@ -8,7 +8,6 @@ import {
   GiftCardIcon,
   PackageIcon,
   ProductAddIcon,
-  LinkIcon,
   TargetIcon,
 } from '@shopify/polaris-icons';
 import type { IconSource } from '@shopify/polaris';
@@ -85,14 +84,6 @@ export const FEATURE_TYPES: FeatureTypeMeta[] = [
     label: 'Cart Upsell',
     description: 'Suggests hand-picked add-on products right in the cart.',
     icon: ProductAddIcon,
-    category: 'funnels',
-    proOnly: true,
-  },
-  {
-    type: 'fbt',
-    label: 'Frequently Bought Together',
-    description: 'Shows a bundle of items shoppers often buy with this product.',
-    icon: LinkIcon,
     category: 'funnels',
     proOnly: true,
   },

@@ -35,7 +35,6 @@ Route::prefix('webhooks/shopify')->group(function () {
 // [app_proxy] and VerifyShopifyAppProxySignature).
 Route::prefix('apps/vantora')->middleware('shopify.proxy')->group(function () {
     Route::get('/recommendations', [ProxyController::class, 'recommendations']);
-    Route::get('/fbt', [ProxyController::class, 'frequentlyBoughtTogether']);
     Route::get('/free-gifts', [ProxyController::class, 'freeGifts']);
 });
 
