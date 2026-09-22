@@ -20,6 +20,24 @@ const SEVERITY_TONE: Record<string, 'critical' | 'warning' | 'info'> = {
   low: 'info',
 };
 
+function scoreTone(score: number): 'success' | 'caution' | 'critical' {
+  if (score >= 80) return 'success';
+  if (score >= 50) return 'caution';
+  return 'critical';
+}
+
+function scoreBadgeTone(score: number): 'success' | 'warning' | 'critical' {
+  if (score >= 80) return 'success';
+  if (score >= 50) return 'warning';
+  return 'critical';
+}
+
+function scoreLabel(score: number): string {
+  if (score >= 80) return 'Healthy';
+  if (score >= 50) return 'Needs attention';
+  return 'At risk';
+}
+
 export default function Dashboard({ shop }: { shop: Shop }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,15 +96,20 @@ export default function Dashboard({ shop }: { shop: Shop }) {
                 <SkeletonBodyText lines={2} />
               ) : data?.health_score != null ? (
                 <>
-                  <Text as="p" variant="heading2xl">
-                    {data.health_score}/100
-                  </Text>
+                  <InlineStack gap="300" blockAlign="center">
+                    <Text as="p" variant="heading2xl" tone={scoreTone(data.health_score)}>
+                      {data.health_score}/100
+                    </Text>
+                    <Badge tone={scoreBadgeTone(data.health_score)}>{scoreLabel(data.health_score)}</Badge>
+                  </InlineStack>
                   <BlockStack gap="200">
                     {data.sub_scores.map((s) => (
                       <BlockStack gap="100" key={s.id}>
                         <InlineStack align="space-between">
                           <Text as="span" tone="subdued">
-                            {s.area.replace('_', ' ')}
+                            {s.area
+                              .replace(/_/g, ' ')
+                              .replace(/\b\w/g, (c) => c.toUpperCase())}
                           </Text>
                           <Text as="span">{s.score}</Text>
                         </InlineStack>

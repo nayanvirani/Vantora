@@ -109,3 +109,7 @@ export const FEATURE_TYPES: FeatureTypeMeta[] = [
 export function featureLabel(type: string): string {
   return FEATURE_TYPES.find((f) => f.type === type)?.label ?? type;
 }
+
+export function featureIcon(type: string): IconSource | undefined {
+  return FEATURE_TYPES.find((f) => f.type === type)?.icon;
+}

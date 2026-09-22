@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Page, Layout, Card, Text, Button, BlockStack, InlineStack, Badge, Banner, TextField } from '@shopify/polaris';
+import { Page, Layout, Card, Text, Button, BlockStack, InlineStack, Badge, Banner, TextField, ResourceList, ResourceItem, Box } from '@shopify/polaris';
 import { api, type FeatureConfig } from '../lib/api';
 import { TYPE_SCHEMAS } from '../lib/settingsSchema';
-import { featureLabel } from '../lib/featureTypes';
+import { featureLabel, featureIcon } from '../lib/featureTypes';
 import SettingsForm from '../components/SettingsForm';
 import ToolPreview from '../components/ToolPreview';
+import IconTile from '../components/IconTile';
 
 const STATUS_TONE: Record<string, 'success' | 'info' | undefined> = {
   active: 'success',
@@ -194,6 +195,8 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
     return <Page title={label} backAction={{ content: 'Back', onAction: onBack }} />;
   }
 
+  const icon = featureIcon(type);
+
   return (
     <Page title={label} backAction={{ content: 'Back', onAction: onBack }} primaryAction={{ content: 'New', disabled: locked, onAction: openNew }}>
       <Layout>
@@ -202,41 +205,50 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
 
           {!loading && configs.length === 0 && !locked && (
             <Card>
-              <Text as="p" tone="subdued">
-                No configurations yet. Click "New" to create one.
-              </Text>
+              <Box padding="800">
+                <BlockStack gap="300" inlineAlign="center">
+                  {icon && <IconTile icon={icon} />}
+                  <Text as="p" alignment="center" tone="subdued">
+                    No {label.toLowerCase()} set up yet.
+                  </Text>
+                  <Button variant="primary" onClick={openNew}>
+                    Create your first one
+                  </Button>
+                </BlockStack>
+              </Box>
             </Card>
           )}
 
-          <BlockStack gap="300">
-            {configs.map((config) => (
-              <Card key={config.id}>
-                <InlineStack align="space-between" blockAlign="center">
-                  <InlineStack gap="200" blockAlign="center">
-                    <Badge tone={STATUS_TONE[config.status]}>{config.status}</Badge>
-                    <Text as="span">{config.name || label}</Text>
-                  </InlineStack>
-                  <InlineStack gap="150">
-                    <Button size="slim" onClick={() => openEdit(config)}>
-                      Edit
-                    </Button>
-                    {config.status === 'active' ? (
-                      <Button size="slim" loading={busyId === config.id} onClick={() => deactivate(config)}>
-                        Pause
-                      </Button>
-                    ) : (
-                      <Button size="slim" variant="primary" loading={busyId === config.id} onClick={() => activate(config)}>
-                        Activate
-                      </Button>
-                    )}
-                    <Button size="slim" tone="critical" variant="plain" loading={busyId === config.id} onClick={() => remove(config)}>
-                      Delete
-                    </Button>
-                  </InlineStack>
-                </InlineStack>
-              </Card>
-            ))}
-          </BlockStack>
+          {configs.length > 0 && (
+            <Card padding="0">
+              <ResourceList
+                items={configs}
+                resourceName={{ singular: label.toLowerCase(), plural: label.toLowerCase() }}
+                renderItem={(config) => (
+                  <ResourceItem
+                    id={String(config.id)}
+                    accessibilityLabel={`Edit ${config.name || label}`}
+                    onClick={() => openEdit(config)}
+                    media={icon ? <IconTile icon={icon} tone={config.status === 'active' ? 'success' : 'default'} /> : undefined}
+                    shortcutActions={[
+                      config.status === 'active'
+                        ? { content: 'Pause', onAction: () => deactivate(config), disabled: busyId === config.id }
+                        : { content: 'Activate', onAction: () => activate(config), disabled: busyId === config.id },
+                      { content: 'Delete', onAction: () => remove(config), disabled: busyId === config.id },
+                    ]}
+                    persistActions
+                  >
+                    <InlineStack gap="200" blockAlign="center">
+                      <Text as="span" fontWeight="semibold">
+                        {config.name || label}
+                      </Text>
+                      <Badge tone={STATUS_TONE[config.status]}>{config.status}</Badge>
+                    </InlineStack>
+                  </ResourceItem>
+                )}
+              />
+            </Card>
+          )}
         </Layout.Section>
       </Layout>
     </Page>
