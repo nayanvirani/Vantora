@@ -7,6 +7,7 @@ import {
   CartDiscountIcon,
   GiftCardIcon,
   PackageIcon,
+  SelectIcon,
   TargetIcon,
 } from '@shopify/polaris-icons';
 import type { IconSource } from '@shopify/polaris';
@@ -76,6 +77,13 @@ export const FEATURE_TYPES: FeatureTypeMeta[] = [
     label: 'Bundle',
     description: 'Sells a fixed set of products together as one discounted offer.',
     icon: PackageIcon,
+    category: 'offers',
+  },
+  {
+    type: 'mix_and_match',
+    label: 'Mix & Match Bundle',
+    description: 'Shoppers pick any set of products from a pool to unlock a discount.',
+    icon: SelectIcon,
     category: 'offers',
   },
   {

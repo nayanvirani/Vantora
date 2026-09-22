@@ -341,6 +341,22 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
         ],
       },
       {
+        title: 'Layout',
+        fields: [
+          {
+            type: 'select',
+            key: 'layout',
+            label: 'Layout',
+            default: 'list',
+            options: [
+              { label: 'List', value: 'list' },
+              { label: 'Grid', value: 'grid' },
+              { label: 'Slider', value: 'slider' },
+            ],
+          },
+        ],
+      },
+      {
         title: 'Discount',
         fields: [
           {
@@ -357,6 +373,35 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
         ],
       },
       { title: 'Content', fields: [{ type: 'text', key: 'message', label: 'Message shown at checkout', default: 'Bundle discount applied' }] },
+    ],
+  },
+  mix_and_match: {
+    preview: 'discount_tag',
+    sections: [
+      {
+        title: 'Product pool',
+        fields: [
+          { type: 'products', key: 'pool_product_ids', label: 'Pick from these products', helpText: 'Shoppers choose any of these to build their own bundle.' },
+          { type: 'number', key: 'pick_count', label: 'Products to pick', default: 3, min: 2 },
+        ],
+      },
+      {
+        title: 'Discount',
+        fields: [
+          {
+            type: 'select',
+            key: 'discount_type',
+            label: 'Discount type',
+            default: 'percentage',
+            options: [
+              { label: 'Percentage off', value: 'percentage' },
+              { label: 'Fixed amount off', value: 'fixed_amount' },
+            ],
+          },
+          { type: 'number', key: 'discount_value', label: 'Discount value', default: 15 },
+        ],
+      },
+      { title: 'Content', fields: [{ type: 'text', key: 'message', label: 'Message shown at checkout', default: 'Mix & match discount applied' }] },
     ],
   },
 };

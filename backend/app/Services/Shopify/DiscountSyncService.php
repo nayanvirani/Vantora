@@ -30,6 +30,7 @@ class DiscountSyncService
         'bogo' => 'Vantora BOGO Offer',
         'free_gift' => 'Vantora Free Gift',
         'bundle' => 'Vantora Bundle Discount',
+        'mix_and_match' => 'Vantora Mix & Match Discount',
     ];
 
     protected const METAFIELD_NAMESPACES = [
@@ -37,6 +38,7 @@ class DiscountSyncService
         'bogo' => '$app:bogo-discount',
         'free_gift' => '$app:free-gift-discount',
         'bundle' => '$app:bundle-discount',
+        'mix_and_match' => '$app:mix-and-match-discount',
     ];
 
     public function sync(Shop $shop, FeatureConfig $config): void
@@ -46,6 +48,7 @@ class DiscountSyncService
             'bogo' => $this->syncDiscount($shop, $config, $this->bogoPayload($config)),
             'free_gift' => $this->syncDiscount($shop, $config, $this->freeGiftPayload($config)),
             'bundle' => $this->syncBundle($shop, $config),
+            'mix_and_match' => $this->syncMixAndMatch($shop, $config),
             default => null,
         };
     }
@@ -246,6 +249,9 @@ class DiscountSyncService
         }
 
         $bundleProduct = $byId->get($bundleProductId);
+        $layout = in_array($config->settings['layout'] ?? null, ['list', 'grid', 'slider'], true)
+            ? $config->settings['layout']
+            : 'list';
 
         $client->graphql(<<<'GQL'
             mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -271,6 +277,7 @@ class DiscountSyncService
                         'heading' => $config->name ?? 'Bundle & Save',
                         'message' => $config->settings['message'] ?? null,
                         'bundle_variant_id' => $bundleProduct['variants']['nodes'][0]['id'] ?? null,
+                        'layout' => $layout,
                         'components' => $displayComponents,
                         'regular_total' => round($regularTotal, 2),
                         'bundle_price' => round($bundlePrice, 2),
@@ -286,6 +293,119 @@ class DiscountSyncService
                 'discountType' => $discountType,
                 'discountValue' => $discountValue,
                 'message' => $config->name ?? 'Bundle discount',
+            ]);
+        }
+    }
+
+    /**
+     * Mix & Match has no single "bundle product" to virtualize the way a
+     * fixed Bundle does -- a shopper's pick is live, and the Cart
+     * Transform function can only see whatever was baked into a metafield
+     * at admin-save time, with no per-cart-line customer-choice input. So
+     * this skips Cart Transform entirely: the storefront picker adds each
+     * chosen product as its own real cart line, and the discount is
+     * granted once enough distinct pool-member products are present in
+     * cart (mix-and-match-discount, matching bundle-discount's
+     * cart-line-by-productId matching but counting distinct products
+     * instead of a quantity multiplier).
+     *
+     * Written to a SHOP-level metafield (no product page of its own to
+     * hang it on), read-modify-write keyed by config->id so multiple
+     * concurrent Mix & Match configs (Pro) don't clobber each other.
+     */
+    protected function syncMixAndMatch(Shop $shop, FeatureConfig $config): void
+    {
+        $poolProductIds = $config->settings['pool_product_ids'] ?? [];
+        $pickCount = (int) ($config->settings['pick_count'] ?? 0);
+
+        if (empty($poolProductIds) || $pickCount < 2) {
+            throw new \RuntimeException('Mix & Match config is missing pool_product_ids or a valid pick_count.');
+        }
+
+        $client = new ShopifyApiClient($shop);
+
+        $nodes = $client->graphql(<<<'GQL'
+            query poolProducts($ids: [ID!]!) {
+                nodes(ids: $ids) {
+                    id
+                    ... on Product {
+                        title
+                        featuredMedia { preview { image { url } } }
+                        variants(first: 1) { nodes { id price } }
+                    }
+                }
+            }
+            GQL, ['ids' => $poolProductIds])->json('data.nodes') ?? [];
+
+        $byId = collect($nodes)->filter()->keyBy('id');
+
+        $products = [];
+        foreach ($poolProductIds as $productId) {
+            $product = $byId->get($productId);
+            $variant = $product['variants']['nodes'][0] ?? null;
+            if (! $product || ! $variant) {
+                continue;
+            }
+
+            $products[] = [
+                'productId' => $productId,
+                'variantId' => $variant['id'],
+                'title' => $product['title'],
+                'image' => $product['featuredMedia']['preview']['image']['url'] ?? null,
+                'price' => (float) $variant['price'],
+            ];
+        }
+
+        $discountType = $config->settings['discount_type'] ?? null;
+        $discountValue = (float) ($config->settings['discount_value'] ?? 0);
+
+        $shopNode = $client->graphql(
+            'query { shop { id metafield(namespace: "vantora", key: "mix_and_match") { value } } }'
+        )->json('data.shop');
+
+        $sets = [];
+        $existingValue = $shopNode['metafield']['value'] ?? null;
+        if ($existingValue) {
+            $sets = json_decode($existingValue, true)['sets'] ?? [];
+        }
+
+        $sets = collect($sets)
+            ->reject(fn ($set) => ($set['config_id'] ?? null) === $config->id)
+            ->push([
+                'config_id' => $config->id,
+                'heading' => $config->name ?? 'Mix & Match',
+                'message' => $config->settings['message'] ?? null,
+                'pick_count' => $pickCount,
+                'discount_type' => $discountType,
+                'discount_value' => $discountValue,
+                'products' => $products,
+            ])
+            ->values()
+            ->all();
+
+        $client->graphql(<<<'GQL'
+            mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+                metafieldsSet(metafields: $metafields) {
+                    userErrors { field message }
+                }
+            }
+            GQL, [
+            'metafields' => [[
+                'ownerId' => $shopNode['id'],
+                'namespace' => 'vantora',
+                'key' => 'mix_and_match',
+                'type' => 'json',
+                'value' => json_encode(['sets' => $sets]),
+            ]],
+        ]);
+
+        if ($discountType && $discountValue > 0) {
+            $this->syncDiscount($shop, $config, [
+                'poolProductIds' => $poolProductIds,
+                'pickCount' => $pickCount,
+                'discountType' => $discountType,
+                'discountValue' => $discountValue,
+                'message' => $config->name ?? 'Mix & match discount',
             ]);
         }
     }

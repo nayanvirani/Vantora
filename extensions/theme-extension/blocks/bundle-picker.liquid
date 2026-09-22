@@ -12,10 +12,23 @@
   total, savings %) -- no separate API round-trip from the storefront.
   Renders nothing on any page that isn't a configured bundle's own
   product page.
+
+  `layout` (list/grid/slider, merchant-picked in the Vantora admin) is
+  baked into the same metafield -- only the component-list markup/CSS
+  varies per layout, totals/savings/button stay identical.
 {% endcomment %}
 {% assign v = product.metafields.vantora.bundle_picker.value %}
 {% if v and v.components.size > 0 %}
-<div class="vantora-bundle-picker" {{ block.shopify_attributes }}>
+{% assign layout = v.layout | default: 'list' %}
+{% case layout %}
+  {% when 'grid' %}
+    {% assign thumb_size = 96 %}
+  {% when 'slider' %}
+    {% assign thumb_size = 80 %}
+  {% else %}
+    {% assign thumb_size = 48 %}
+{% endcase %}
+<div class="vantora-bundle-picker vantora-bundle-picker--{{ layout }}" {{ block.shopify_attributes }}>
   <p class="vantora-bundle-picker__heading">{{ v.heading }}</p>
   {% if v.message %}
     <p class="vantora-bundle-picker__subheading">{{ v.message }}</p>
@@ -25,7 +38,7 @@
     {% for component in v.components %}
       <div class="vantora-bundle-picker__item">
         {% if component.image %}
-          <img src="{{ component.image }}" alt="{{ component.title | escape }}" width="48" height="48" loading="lazy">
+          <img src="{{ component.image }}" alt="{{ component.title | escape }}" width="{{ thumb_size }}" height="{{ thumb_size }}" loading="lazy">
         {% endif %}
         <span class="vantora-bundle-picker__item-title">
           {{ component.title }}{% if component.quantity > 1 %} &times; {{ component.quantity }}{% endif %}
@@ -59,6 +72,35 @@
   .vantora-bundle-picker__item img { border-radius: 4px; object-fit: cover; }
   .vantora-bundle-picker__item-title { flex: 1; }
   .vantora-bundle-picker__item-price { color: rgba(0,0,0,.6); }
+
+  .vantora-bundle-picker--grid .vantora-bundle-picker__items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 12px;
+  }
+  .vantora-bundle-picker--grid .vantora-bundle-picker__item {
+    flex-direction: column;
+    text-align: center;
+    gap: 4px;
+  }
+
+  .vantora-bundle-picker--slider .vantora-bundle-picker__items {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    padding-bottom: 4px;
+  }
+  .vantora-bundle-picker--slider .vantora-bundle-picker__item {
+    flex: 0 0 auto;
+    width: 100px;
+    scroll-snap-align: start;
+    flex-direction: column;
+    text-align: center;
+    gap: 4px;
+  }
   .vantora-bundle-picker__totals { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
   .vantora-bundle-picker__price { font-size: 20px; font-weight: 700; }
   .vantora-bundle-picker__compare { text-decoration: line-through; color: rgba(0,0,0,.5); font-size: 14px; }

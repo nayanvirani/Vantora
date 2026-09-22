@@ -1,0 +1,148 @@
+{% comment %}
+  F-18 Mix & Match Bundle storefront picker (app block). Unlike
+  bundle-picker.liquid (one fixed "bundle product" whose page hosts a
+  product metafield), Mix & Match has no single product page of its own
+  -- the shopper picks live from a pool, so this reads a SHOP-level
+  metafield instead. Add this block anywhere via the Theme Editor (a
+  page, a section on the homepage, etc.).
+
+  Reads shop.metafields.vantora.mix_and_match.value.sets, written by
+  DiscountSyncService::syncMixAndMatch. v1 renders only the first set
+  found -- a shop with multiple concurrent Mix & Match configs (Pro)
+  needs a way to pick which one this block shows, deferred for now.
+
+  Adds each chosen product as its own real cart line (batch /cart/add.js,
+  not a single virtual bundle variant) -- the discount function grants
+  the price break once enough distinct pool products are in cart, so no
+  Cart Transform is involved here at all.
+{% endcomment %}
+{% assign m = shop.metafields.vantora.mix_and_match.value %}
+{% assign set = m.sets[0] %}
+{% if set and set.products.size > 0 %}
+<div class="vantora-mix-and-match" {{ block.shopify_attributes }} data-pick-count="{{ set.pick_count }}" data-config-id="{{ set.config_id }}">
+  <p class="vantora-mix-and-match__heading">{{ set.heading }}</p>
+  {% if set.message %}
+    <p class="vantora-mix-and-match__subheading">{{ set.message }}</p>
+  {% endif %}
+
+  <div class="vantora-mix-and-match__items">
+    {% for product in set.products %}
+      <button type="button" class="vantora-mix-and-match__item" data-variant-id="{{ product.variantId }}">
+        {% if product.image %}
+          <img src="{{ product.image }}" alt="{{ product.title | escape }}" width="80" height="80" loading="lazy">
+        {% endif %}
+        <span class="vantora-mix-and-match__item-title">{{ product.title }}</span>
+        <span class="vantora-mix-and-match__item-price">{{ product.price | times: 100 | money }}</span>
+      </button>
+    {% endfor %}
+  </div>
+
+  <div class="vantora-mix-and-match__footer">
+    <span class="vantora-mix-and-match__counter">0 of {{ set.pick_count }} selected</span>
+    <button type="button" class="vantora-mix-and-match__button" disabled>Add to cart</button>
+  </div>
+</div>
+
+<style>
+  .vantora-mix-and-match { border: 1px solid rgba(0,0,0,.1); border-radius: 8px; padding: 16px; margin: 16px 0; }
+  .vantora-mix-and-match__heading { font-weight: 600; font-size: 16px; margin: 0 0 2px; }
+  .vantora-mix-and-match__subheading { margin: 0 0 12px; font-size: 13px; color: rgba(0,0,0,.6); }
+  .vantora-mix-and-match__items { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .vantora-mix-and-match__item { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; font-size: 12px; background: none; border: 2px solid rgba(0,0,0,.1); border-radius: 8px; padding: 8px; cursor: pointer; font-family: inherit; }
+  .vantora-mix-and-match__item img { border-radius: 4px; object-fit: cover; }
+  .vantora-mix-and-match__item.is-selected { border-color: #1a7f37; background: #f0f9f3; }
+  .vantora-mix-and-match__item-price { color: rgba(0,0,0,.6); }
+  .vantora-mix-and-match__footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .vantora-mix-and-match__counter { font-size: 13px; color: rgba(0,0,0,.7); }
+  .vantora-mix-and-match__button { background: #111; color: #fff; border: 0; border-radius: 6px; padding: 12px 18px; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .vantora-mix-and-match__button:disabled { opacity: .5; cursor: default; }
+</style>
+
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
+<script>
+  (function () {
+    var root = document.currentScript.closest('.vantora-mix-and-match') || document.querySelector('.vantora-mix-and-match');
+    if (!root) return;
+
+    if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'mix_and_match');
+
+    var pickCount = parseInt(root.dataset.pickCount, 10) || 0;
+    var configId = root.dataset.configId;
+    var items = Array.prototype.slice.call(root.querySelectorAll('.vantora-mix-and-match__item'));
+    var counter = root.querySelector('.vantora-mix-and-match__counter');
+    var button = root.querySelector('.vantora-mix-and-match__button');
+    var selected = [];
+
+    function render() {
+      counter.textContent = selected.length + ' of ' + pickCount + ' selected';
+      button.disabled = selected.length !== pickCount;
+    }
+
+    items.forEach(function (item) {
+      item.addEventListener('click', function () {
+        var variantId = item.dataset.variantId;
+        var index = selected.indexOf(variantId);
+
+        if (index > -1) {
+          selected.splice(index, 1);
+          item.classList.remove('is-selected');
+        } else {
+          if (selected.length >= pickCount) return;
+          selected.push(variantId);
+          item.classList.add('is-selected');
+        }
+
+        render();
+      });
+    });
+
+    button.addEventListener('click', function () {
+      if (selected.length !== pickCount) return;
+
+      if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'mix_and_match');
+      button.disabled = true;
+      var originalText = button.textContent;
+      button.textContent = 'Adding...';
+
+      var payload = {
+        items: selected.map(function (variantId) {
+          return { id: variantId, quantity: 1, properties: { _vantora_bundle_group: configId } };
+        }),
+      };
+
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Add to cart failed');
+          // vantora-cart.js's fetch-patching cart watcher (loaded above)
+          // already dispatches vantora:cart-updated/cart:refresh for any
+          // /cart/add.js call, including this batch one -- no need to do
+          // it again here.
+          button.textContent = 'Added!';
+          setTimeout(function () { button.textContent = originalText; render(); }, 1500);
+        })
+        .catch(function (err) {
+          console.error('Vantora mix & match add failed', err);
+          button.textContent = originalText;
+          render();
+        });
+    });
+
+    render();
+  })();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Vantora: Mix & Match",
+  "target": "section",
+  "settings": [
+    { "type": "paragraph", "content": "Configured in the Vantora app (Offers > Mix & Match Bundle). Add this block wherever shoppers should build their own bundle -- it only shows once a Mix & Match config is activated." }
+  ]
+}
+{% endschema %}

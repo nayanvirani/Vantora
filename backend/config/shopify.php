@@ -50,6 +50,7 @@ return [
         'bogo',
         'quantity_discount',
         'bundle',
+        'mix_and_match',
     ],
 
     // Modules only available on the Pro plan regardless of count.

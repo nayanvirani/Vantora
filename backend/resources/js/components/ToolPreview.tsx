@@ -189,6 +189,8 @@ function DiscountTagPreview({ type, v }: { type: string; v: V }) {
         : `Free gift when cart reaches $${num(v.trigger_amount, 100)}`;
   } else if (type === 'bundle' && v.discount_value) {
     summary = `Bundle: ${v.discount_value}${v.discount_type === 'fixed_amount' ? ' off' : '% off'}`;
+  } else if (type === 'mix_and_match' && v.pick_count) {
+    summary = `Pick ${v.pick_count}, save ${v.discount_value}${v.discount_type === 'fixed_amount' ? ' off' : '% off'}`;
   }
 
   return (

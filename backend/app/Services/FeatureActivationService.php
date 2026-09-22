@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 class FeatureActivationService
 {
     /** Types that need a Shopify Function synced via DiscountSyncService on activate. */
-    protected const DISCOUNT_SYNCED_TYPES = ['quantity_discount', 'bogo', 'free_gift', 'bundle'];
+    protected const DISCOUNT_SYNCED_TYPES = ['quantity_discount', 'bogo', 'free_gift', 'bundle', 'mix_and_match'];
 
     public function __construct(
         protected PlanGateService $planGate,
