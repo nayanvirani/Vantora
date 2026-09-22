@@ -2,16 +2,12 @@
   F-13 Trust Badges (app block). Merchant adds this block to the product
   or cart section via the theme editor.
 
-  Settings resolve in order: a product-specific `vantora` metafield (a
-  merchant targeted this to specific products in the admin GUI), then the
-  shop-wide `vantora` metafield (untargeted / everywhere), then this
-  block's Theme Editor settings -- whole-object, not merged field-by-field
-  (see sticky-add-to-cart.liquid for why). Icons work differently
-  depending on which source won: the admin GUI has no image upload yet, so
-  it saves a built-in icon library key (a plain string rendered as an
-  inline SVG below); the Theme Editor's own settings still use its native
-  image_picker, rendered as an <img> -- these never mix within one badge
-  since the whole source switches together, not field by field.
+  All content/appearance settings (layout, badges, icons) are configured
+  in the Vantora app (Storefront > Trust Badges), not here -- see
+  sticky-add-to-cart.liquid for why. Settings resolve in order: a
+  product-specific `vantora` metafield (targeted to specific products in
+  the app), then the shop-wide one (untargeted / everywhere). Renders
+  nothing until the merchant has configured and activated this in the app.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.trust_badges.value %}
 {% if product %}
@@ -20,27 +16,20 @@
     {% assign v = product_v %}
   {% endif %}
 {% endif %}
-{% assign layout = v.layout | default: block.settings.layout %}
+
+{% if v %}
+{% assign layout = v.layout %}
 
 <div class="vantora-trust-badges vantora-trust-badges--{{ layout }}" {{ block.shopify_attributes }}>
   {% for i in (1..6) %}
     {% assign icon_key = 'badge_' | append: i | append: '_icon' %}
     {% assign label_key = 'badge_' | append: i | append: '_label' %}
-    {% if v %}
-      {% assign label = v[label_key] %}
-      {% assign icon_name = v[icon_key] %}
-      {% assign icon_image = nil %}
-    {% else %}
-      {% assign label = block.settings[label_key] %}
-      {% assign icon_name = nil %}
-      {% assign icon_image = block.settings[icon_key] %}
-    {% endif %}
+    {% assign label = v[label_key] %}
+    {% assign icon_name = v[icon_key] %}
 
     {% if label != blank %}
       <div class="vantora-trust-badges__item">
-        {% if icon_image %}
-          <img src="{{ icon_image | image_url: width: 48 }}" alt="" width="24" height="24" loading="lazy">
-        {% elsif icon_name != blank %}
+        {% if icon_name != blank %}
           <span class="vantora-trust-badges__icon" aria-hidden="true">
             {% case icon_name %}
               {% when 'shield' %}
@@ -79,26 +68,14 @@
 <script>
   if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'trust_badges');
 </script>
+{% endif %}
 
 {% schema %}
 {
   "name": "Vantora: Trust Badges",
   "target": "section",
   "settings": [
-    { "type": "select", "id": "layout", "label": "Layout", "default": "row",
-      "options": [ { "value": "row", "label": "Row" }, { "value": "stacked", "label": "Stacked" } ] },
-    { "type": "image_picker", "id": "badge_1_icon", "label": "Badge 1 icon" },
-    { "type": "text", "id": "badge_1_label", "label": "Badge 1 label", "default": "Secure checkout" },
-    { "type": "image_picker", "id": "badge_2_icon", "label": "Badge 2 icon" },
-    { "type": "text", "id": "badge_2_label", "label": "Badge 2 label", "default": "Money-back guarantee" },
-    { "type": "image_picker", "id": "badge_3_icon", "label": "Badge 3 icon" },
-    { "type": "text", "id": "badge_3_label", "label": "Badge 3 label", "default": "Fast shipping" },
-    { "type": "image_picker", "id": "badge_4_icon", "label": "Badge 4 icon" },
-    { "type": "text", "id": "badge_4_label", "label": "Badge 4 label" },
-    { "type": "image_picker", "id": "badge_5_icon", "label": "Badge 5 icon" },
-    { "type": "text", "id": "badge_5_label", "label": "Badge 5 label" },
-    { "type": "image_picker", "id": "badge_6_icon", "label": "Badge 6 icon" },
-    { "type": "text", "id": "badge_6_label", "label": "Badge 6 label" }
+    { "type": "paragraph", "content": "Layout, badges and icons are set in the Vantora app (Storefront > Trust Badges), not here." }
   ]
 }
 {% endschema %}

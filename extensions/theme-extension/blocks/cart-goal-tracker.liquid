@@ -3,14 +3,22 @@
   free shipping at $50, free gift at $100 -- the Pro upgrade of the
   single-tier Free Shipping Bar.
 
-  Settings resolve from the `vantora` shop metafield first (written when
-  the merchant saves this tool in the admin GUI), falling back to this
-  block's Theme Editor settings if that metafield doesn't exist yet. See
-  sticky-add-to-cart.liquid for why this is a whole-object fallback rather
-  than merged field-by-field.
+  All content/appearance settings are configured in the Vantora app
+  (Funnels > Cart Goal Tracker), not here -- see sticky-add-to-cart.liquid
+  for why. Renders nothing until the merchant has configured and activated
+  this in the app.
+
+  Position: "cart page" is reliably known at render time (template ==
+  'cart'), so that mode is gated server-side. "cart_drawer" tries to
+  physically move into the theme's own drawer markup (see the script
+  below) -- verified against this store's actual theme (Dawn), not a
+  documented cross-theme standard, so it floats in place on any other theme.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.goal_tracker.value %}
-{% if v %}
+
+{% if v and v.position == 'cart' and template != 'cart' %}
+  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
+{% elsif v %}
   {% assign position = v.position | default: 'cart' %}
   {% assign tier_1_threshold = v.tier_1_threshold %}
   {% assign tier_1_label = v.tier_1_label %}
@@ -21,29 +29,6 @@
   {% assign background_color = v.background_color %}
   {% assign progress_color = v.progress_color %}
   {% assign text_color = v.text_color %}
-{% else %}
-  {% assign position = block.settings.position | default: 'cart' %}
-  {% assign tier_1_threshold = block.settings.tier_1_threshold %}
-  {% assign tier_1_label = block.settings.tier_1_label %}
-  {% assign tier_2_threshold = block.settings.tier_2_threshold %}
-  {% assign tier_2_label = block.settings.tier_2_label %}
-  {% assign tier_3_threshold = block.settings.tier_3_threshold %}
-  {% assign tier_3_label = block.settings.tier_3_label %}
-  {% assign background_color = block.settings.background_color %}
-  {% assign progress_color = block.settings.progress_color %}
-  {% assign text_color = block.settings.text_color %}
-{% endif %}
-
-{% comment %}
-  "Cart page" is reliably known at render time (template == 'cart'), so that
-  mode is gated server-side. "Cart drawer" can be opened from any page in
-  most themes, and this block can't reach inside the theme's own drawer
-  markup -- so that mode renders as a floating widget instead, which is the
-  closest a body-level app embed can get without theme-specific hooks.
-{% endcomment %}
-{% if position == 'cart' and template != 'cart' %}
-  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
-{% else %}
 <div
   id="vantora-goal-tracker"
   class="vantora-goal-tracker"
@@ -145,17 +130,7 @@
   "name": "Vantora: Goal Tracker",
   "target": "body",
   "settings": [
-    { "type": "number", "id": "tier_1_threshold", "label": "Tier 1 threshold", "default": 50 },
-    { "type": "text", "id": "tier_1_label", "label": "Tier 1 label", "default": "Free shipping" },
-    { "type": "number", "id": "tier_2_threshold", "label": "Tier 2 threshold", "default": 100 },
-    { "type": "text", "id": "tier_2_label", "label": "Tier 2 label", "default": "Free gift" },
-    { "type": "number", "id": "tier_3_threshold", "label": "Tier 3 threshold (optional)", "default": 0 },
-    { "type": "text", "id": "tier_3_label", "label": "Tier 3 label" },
-    { "type": "select", "id": "position", "label": "Where it shows", "default": "cart",
-      "options": [ { "value": "cart", "label": "Cart page only" }, { "value": "cart_drawer", "label": "Floating (cart drawer)" } ] },
-    { "type": "color", "id": "background_color", "label": "Background color", "default": "#f4f4f4" },
-    { "type": "color", "id": "progress_color", "label": "Progress color", "default": "#1a7f37" },
-    { "type": "color", "id": "text_color", "label": "Text color", "default": "#111111" }
+    { "type": "paragraph", "content": "Configured in the Vantora app (Funnels > Cart Goal Tracker). This embed just needs to be switched on here." }
   ]
 }
 {% endschema %}

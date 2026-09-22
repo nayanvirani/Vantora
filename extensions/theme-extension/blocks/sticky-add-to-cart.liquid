@@ -3,18 +3,16 @@
   Renders only on product pages; reads live price/variant from the product
   object so it works without a backend round-trip.
 
-  Settings resolve from the `vantora` shop metafield first (written by
-  ThemeSettingsSyncService when the merchant saves this tool in the admin
-  GUI) and fall back to this block's own Theme Editor settings when that
-  metafield doesn't exist yet -- e.g. before the merchant has configured it
-  through the app at all. Whichever source is used, it's used wholesale
-  (not merged field-by-field): the GUI always saves every field, so there's
-  no "some fields from the metafield, some from the block" split to reason
-  about, and it avoids Liquid's `default` filter treating an explicit
-  `false` the same as "unset" for the checkbox fields.
+  All content/appearance settings are configured in the Vantora app
+  (Storefront > Sticky Add to Cart), not here -- a merchant found having
+  the same settings editable in both the app AND the Theme Editor
+  confusing, and the Theme Editor copy never actually reached the
+  storefront anyway (the metafield always won once set). Renders nothing
+  until the merchant has configured and activated this in the app.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.sticky_atc.value %}
-{% if v %}
+
+{% if v and product %}
   {% assign position = v.position %}
   {% assign button_text = v.button_text %}
   {% assign background_color = v.background_color %}
@@ -25,20 +23,6 @@
   {% assign show_desktop = v.show_desktop %}
   {% assign show_mobile = v.show_mobile %}
   {% assign scroll_trigger = v.scroll_trigger %}
-{% else %}
-  {% assign position = block.settings.position %}
-  {% assign button_text = block.settings.button_text %}
-  {% assign background_color = block.settings.background_color %}
-  {% assign text_color = block.settings.text_color %}
-  {% assign show_image = block.settings.show_image %}
-  {% assign show_price = block.settings.show_price %}
-  {% assign show_variant_selector = block.settings.show_variant_selector %}
-  {% assign show_desktop = block.settings.show_desktop %}
-  {% assign show_mobile = block.settings.show_mobile %}
-  {% assign scroll_trigger = block.settings.scroll_trigger %}
-{% endif %}
-
-{% if product %}
   <div
     id="vantora-sticky-atc"
     class="vantora-sticky-atc vantora-sticky-atc--{{ position }}"
@@ -164,17 +148,7 @@
   "name": "Vantora: Sticky ATC",
   "target": "body",
   "settings": [
-    { "type": "select", "id": "position", "label": "Position", "default": "bottom",
-      "options": [ { "value": "top", "label": "Top" }, { "value": "bottom", "label": "Bottom" } ] },
-    { "type": "text", "id": "button_text", "label": "Button text", "default": "Add to cart" },
-    { "type": "color", "id": "background_color", "label": "Background color", "default": "#111111" },
-    { "type": "color", "id": "text_color", "label": "Text color", "default": "#ffffff" },
-    { "type": "checkbox", "id": "show_image", "label": "Show product image", "default": true },
-    { "type": "checkbox", "id": "show_price", "label": "Show price", "default": true },
-    { "type": "checkbox", "id": "show_variant_selector", "label": "Show variant selector", "default": true },
-    { "type": "checkbox", "id": "show_desktop", "label": "Show on desktop", "default": true },
-    { "type": "checkbox", "id": "show_mobile", "label": "Show on mobile", "default": true },
-    { "type": "checkbox", "id": "scroll_trigger", "label": "Only show after scrolling past the buy button", "default": true }
+    { "type": "paragraph", "content": "Configured in the Vantora app (Storefront > Sticky Add to Cart). This embed just needs to be switched on here." }
   ]
 }
 {% endschema %}

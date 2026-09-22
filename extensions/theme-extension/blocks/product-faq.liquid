@@ -2,16 +2,17 @@
   F-14 Product FAQ (app block). Accordion Q&A with FAQPage schema markup
   for SEO.
 
-  Settings resolve in order: a product-specific `vantora` metafield (a
-  merchant targeted this FAQ to specific products in the admin GUI), then
-  the shop-wide `vantora` metafield (untargeted / applies everywhere),
-  then this block's Theme Editor settings. Every field here is
-  text/textarea (no booleans), so unlike the other blocks this can safely
-  use Liquid's `default` filter on the whole settings object at once
-  instead of assigning each field individually -- `default` only
-  mishandles explicit `false`, not missing hash keys.
+  Content is configured entirely in the Vantora app (Storefront > Product
+  FAQ), not here -- a merchant found having the same questions/answers
+  editable in both the app AND the Theme Editor confusing (and the Theme
+  Editor copy never actually reached the storefront anyway, since the
+  metafield always wins once set). This block only reads the `vantora`
+  metafield now: product-specific first (targeted to specific products in
+  the app), falling back to the shop-wide one (untargeted / applies
+  everywhere). If neither exists yet -- the merchant hasn't configured
+  this in the app -- it renders nothing rather than placeholder content.
 {% endcomment %}
-{% assign source = shop.metafields.vantora.faq.value | default: block.settings %}
+{% assign source = shop.metafields.vantora.faq.value %}
 {% if product %}
   {% assign source = product.metafields.vantora.faq.value | default: source %}
 {% endif %}
@@ -81,23 +82,7 @@
   "name": "Vantora: Product FAQ",
   "target": "section",
   "settings": [
-    { "type": "text", "id": "heading", "label": "Heading", "default": "Frequently asked questions" },
-    { "type": "text", "id": "question_1", "label": "Question 1" },
-    { "type": "textarea", "id": "answer_1", "label": "Answer 1" },
-    { "type": "text", "id": "question_2", "label": "Question 2" },
-    { "type": "textarea", "id": "answer_2", "label": "Answer 2" },
-    { "type": "text", "id": "question_3", "label": "Question 3" },
-    { "type": "textarea", "id": "answer_3", "label": "Answer 3" },
-    { "type": "text", "id": "question_4", "label": "Question 4" },
-    { "type": "textarea", "id": "answer_4", "label": "Answer 4" },
-    { "type": "text", "id": "question_5", "label": "Question 5" },
-    { "type": "textarea", "id": "answer_5", "label": "Answer 5" },
-    { "type": "text", "id": "question_6", "label": "Question 6" },
-    { "type": "textarea", "id": "answer_6", "label": "Answer 6" },
-    { "type": "text", "id": "question_7", "label": "Question 7" },
-    { "type": "textarea", "id": "answer_7", "label": "Answer 7" },
-    { "type": "text", "id": "question_8", "label": "Question 8" },
-    { "type": "textarea", "id": "answer_8", "label": "Answer 8" }
+    { "type": "paragraph", "content": "Questions and answers are set in the Vantora app (Storefront > Product FAQ), not here. This block just controls where the FAQ appears on the page." }
   ]
 }
 {% endschema %}

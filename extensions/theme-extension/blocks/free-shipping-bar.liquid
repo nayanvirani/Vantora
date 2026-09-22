@@ -2,14 +2,23 @@
   F-12 Free Shipping Bar (app embed). Reads the live cart total client-side
   via /cart.js so the progress bar stays accurate across AJAX cart updates.
 
-  Settings resolve from the `vantora` shop metafield first (written when
-  the merchant saves this tool in the admin GUI), falling back to this
-  block's Theme Editor settings if that metafield doesn't exist yet. See
-  sticky-add-to-cart.liquid for why this is a whole-object fallback rather
-  than merged field-by-field.
+  All content/appearance settings are configured in the Vantora app
+  (Storefront > Free Shipping Bar), not here -- see sticky-add-to-cart.liquid
+  for why. Renders nothing until the merchant has configured and activated
+  this in the app.
+
+  Position: "top" is a sitewide banner by design. "cart" is gated to the
+  cart page, same as cart-goal-tracker.liquid. "cart_drawer" tries to
+  physically move into the theme's own drawer markup (see the script
+  below) -- verified against this store's actual theme (Dawn):
+  `#CartDrawer .drawer__inner`. Not a documented cross-theme standard, so
+  it floats in place on any other theme instead.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.shipping_bar.value %}
-{% if v %}
+
+{% if v and v.position == 'cart' and template != 'cart' %}
+  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
+{% elsif v %}
   {% assign threshold = v.threshold %}
   {% assign position = v.position %}
   {% assign progress_message = v.progress_message %}
@@ -17,27 +26,6 @@
   {% assign background_color = v.background_color %}
   {% assign progress_color = v.progress_color %}
   {% assign text_color = v.text_color %}
-{% else %}
-  {% assign threshold = block.settings.threshold %}
-  {% assign position = block.settings.position %}
-  {% assign progress_message = block.settings.progress_message %}
-  {% assign success_message = block.settings.success_message %}
-  {% assign background_color = block.settings.background_color %}
-  {% assign progress_color = block.settings.progress_color %}
-  {% assign text_color = block.settings.text_color %}
-{% endif %}
-
-{% comment %}
-  "top" is a sitewide banner by design. "cart" is gated to the cart page,
-  same as cart-goal-tracker.liquid. "cart_drawer" tries to physically move
-  into the theme's own drawer markup (see the script below) -- verified
-  against this store's actual theme (Dawn): `#CartDrawer .drawer__inner`.
-  Not a documented cross-theme standard, so it floats in place on any
-  other theme instead.
-{% endcomment %}
-{% if position == 'cart' and template != 'cart' %}
-  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
-{% else %}
 <div
   id="vantora-shipping-bar"
   class="vantora-shipping-bar vantora-shipping-bar--{{ position }}"
@@ -114,14 +102,7 @@
   "name": "Vantora: Shipping Bar",
   "target": "body",
   "settings": [
-    { "type": "number", "id": "threshold", "label": "Free shipping threshold", "default": 50 },
-    { "type": "select", "id": "position", "label": "Position", "default": "cart",
-      "options": [ { "value": "cart", "label": "Cart page" }, { "value": "cart_drawer", "label": "Cart drawer" }, { "value": "top", "label": "Page top (every page)" } ] },
-    { "type": "text", "id": "progress_message", "label": "Progress message", "default": "Add %%AMOUNT%% more for free shipping!" },
-    { "type": "text", "id": "success_message", "label": "Success message", "default": "You've unlocked free shipping!" },
-    { "type": "color", "id": "background_color", "label": "Background color", "default": "#f4f4f4" },
-    { "type": "color", "id": "progress_color", "label": "Progress color", "default": "#1a7f37" },
-    { "type": "color", "id": "text_color", "label": "Text color", "default": "#111111" }
+    { "type": "paragraph", "content": "Configured in the Vantora app (Storefront > Free Shipping Bar). This embed just needs to be switched on here." }
   ]
 }
 {% endschema %}
