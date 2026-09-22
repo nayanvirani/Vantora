@@ -169,6 +169,17 @@ class DiscountSyncService
      * component config from a PRODUCT metafield (not the discount node),
      * so the bundle's parent product needs that metafield written, plus a
      * separate bundle-discount automatic discount for the price break.
+     *
+     * Found and fixed while building the storefront bundle picker: the
+     * admin GUI's product picker only ever stored a component's productId,
+     * but bundle-transform/src/cart_transform_run.js reads
+     * component.variantId to build the expanded cart line -- every
+     * component's merchandiseId was silently undefined, so the Cart
+     * Transform could never have actually expanded a bundle line on a real
+     * storefront. Resolves each component's (and the bundle product's own)
+     * default variant, title, image and price here in one query, both to
+     * fix that and to have everything the picker needs to render without
+     * its own API round-trip.
      */
     protected function syncBundle(Shop $shop, FeatureConfig $config): void
     {
@@ -181,6 +192,61 @@ class DiscountSyncService
 
         $client = new ShopifyApiClient($shop);
 
+        $productIds = array_values(array_unique(array_merge(
+            [$bundleProductId],
+            array_column($components, 'productId')
+        )));
+
+        $nodes = $client->graphql(<<<'GQL'
+            query bundleProducts($ids: [ID!]!) {
+                nodes(ids: $ids) {
+                    id
+                    ... on Product {
+                        title
+                        featuredMedia { preview { image { url } } }
+                        variants(first: 1) { nodes { id price } }
+                    }
+                }
+            }
+            GQL, ['ids' => $productIds])->json('data.nodes') ?? [];
+
+        $byId = collect($nodes)->filter()->keyBy('id');
+
+        $transformComponents = [];
+        $displayComponents = [];
+        $regularTotal = 0.0;
+
+        foreach ($components as $component) {
+            $product = $byId->get($component['productId'] ?? null);
+            $variant = $product['variants']['nodes'][0] ?? null;
+            if (! $product || ! $variant) {
+                continue;
+            }
+
+            $quantity = (int) ($component['quantity'] ?? 1);
+            $price = (float) $variant['price'];
+
+            $transformComponents[] = ['variantId' => $variant['id'], 'quantity' => $quantity];
+            $displayComponents[] = [
+                'title' => $component['title'] ?? $product['title'],
+                'image' => $product['featuredMedia']['preview']['image']['url'] ?? null,
+                'price' => $price,
+                'quantity' => $quantity,
+            ];
+            $regularTotal += $price * $quantity;
+        }
+
+        $discountType = $config->settings['discount_type'] ?? null;
+        $discountValue = (float) ($config->settings['discount_value'] ?? 0);
+        $bundlePrice = $regularTotal;
+        if ($discountType === 'percentage' && $discountValue > 0) {
+            $bundlePrice = $regularTotal * (1 - min($discountValue, 100) / 100);
+        } elseif ($discountType === 'fixed_amount' && $discountValue > 0) {
+            $bundlePrice = max(0, $regularTotal - $discountValue);
+        }
+
+        $bundleProduct = $byId->get($bundleProductId);
+
         $client->graphql(<<<'GQL'
             mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
                 metafieldsSet(metafields: $metafields) {
@@ -188,20 +254,37 @@ class DiscountSyncService
                 }
             }
             GQL, [
-            'metafields' => [[
-                'ownerId' => $bundleProductId,
-                'namespace' => '$app:bundle-components',
-                'key' => 'components',
-                'type' => 'json',
-                'value' => json_encode($components),
-            ]],
+            'metafields' => [
+                [
+                    'ownerId' => $bundleProductId,
+                    'namespace' => '$app:bundle-components',
+                    'key' => 'components',
+                    'type' => 'json',
+                    'value' => json_encode($transformComponents),
+                ],
+                [
+                    'ownerId' => $bundleProductId,
+                    'namespace' => 'vantora',
+                    'key' => 'bundle_picker',
+                    'type' => 'json',
+                    'value' => json_encode([
+                        'heading' => $config->name ?? 'Bundle & Save',
+                        'message' => $config->settings['message'] ?? null,
+                        'bundle_variant_id' => $bundleProduct['variants']['nodes'][0]['id'] ?? null,
+                        'components' => $displayComponents,
+                        'regular_total' => round($regularTotal, 2),
+                        'bundle_price' => round($bundlePrice, 2),
+                        'savings_percent' => $regularTotal > 0 ? (int) round((1 - $bundlePrice / $regularTotal) * 100) : 0,
+                    ]),
+                ],
+            ],
         ]);
 
-        if (($config->settings['discount_type'] ?? null) && ($config->settings['discount_value'] ?? null)) {
+        if ($discountType && $discountValue > 0) {
             $this->syncDiscount($shop, $config, [
                 'components' => $components,
-                'discountType' => $config->settings['discount_type'],
-                'discountValue' => $config->settings['discount_value'],
+                'discountType' => $discountType,
+                'discountValue' => $discountValue,
                 'message' => $config->name ?? 'Bundle discount',
             ]);
         }

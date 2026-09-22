@@ -1,0 +1,110 @@
+{% comment %}
+  F-18 Bundles storefront picker (app block). Previously Bundle had no
+  customer-facing UI at all -- the discount only applied if a shopper
+  happened to add the exact bundle product, with nothing on the page
+  telling them the bundle or the saving existed. Renders on the bundle
+  product's own page (Theme Editor > Product page > Add block), showing
+  its components, the price break, and an add-to-cart button.
+
+  Reads product.metafields.vantora.bundle_picker.value, written by
+  DiscountSyncService::syncBundle at activation time with everything
+  needed to render (component title/image/price, regular vs bundle
+  total, savings %) -- no separate API round-trip from the storefront.
+  Renders nothing on any page that isn't a configured bundle's own
+  product page.
+{% endcomment %}
+{% assign v = product.metafields.vantora.bundle_picker.value %}
+{% if v and v.components.size > 0 %}
+<div class="vantora-bundle-picker" {{ block.shopify_attributes }}>
+  <p class="vantora-bundle-picker__heading">{{ v.heading }}</p>
+  {% if v.message %}
+    <p class="vantora-bundle-picker__subheading">{{ v.message }}</p>
+  {% endif %}
+
+  <div class="vantora-bundle-picker__items">
+    {% for component in v.components %}
+      <div class="vantora-bundle-picker__item">
+        {% if component.image %}
+          <img src="{{ component.image }}" alt="{{ component.title | escape }}" width="48" height="48" loading="lazy">
+        {% endif %}
+        <span class="vantora-bundle-picker__item-title">
+          {{ component.title }}{% if component.quantity > 1 %} &times; {{ component.quantity }}{% endif %}
+        </span>
+        <span class="vantora-bundle-picker__item-price">{{ component.price | times: 100 | money }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="vantora-bundle-picker__totals">
+    <span class="vantora-bundle-picker__price">{{ v.bundle_price | times: 100 | money }}</span>
+    {% if v.regular_total > v.bundle_price %}
+      <span class="vantora-bundle-picker__compare">{{ v.regular_total | times: 100 | money }}</span>
+    {% endif %}
+    {% if v.savings_percent > 0 %}
+      <span class="vantora-bundle-picker__savings">Save {{ v.savings_percent }}%</span>
+    {% endif %}
+  </div>
+
+  <button type="button" class="vantora-bundle-picker__button" data-variant-id="{{ v.bundle_variant_id }}">
+    Add bundle to cart
+  </button>
+</div>
+
+<style>
+  .vantora-bundle-picker { border: 1px solid rgba(0,0,0,.1); border-radius: 8px; padding: 16px; margin: 16px 0; }
+  .vantora-bundle-picker__heading { font-weight: 600; font-size: 16px; margin: 0 0 2px; }
+  .vantora-bundle-picker__subheading { margin: 0 0 12px; font-size: 13px; color: rgba(0,0,0,.6); }
+  .vantora-bundle-picker__items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .vantora-bundle-picker__item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .vantora-bundle-picker__item img { border-radius: 4px; object-fit: cover; }
+  .vantora-bundle-picker__item-title { flex: 1; }
+  .vantora-bundle-picker__item-price { color: rgba(0,0,0,.6); }
+  .vantora-bundle-picker__totals { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .vantora-bundle-picker__price { font-size: 20px; font-weight: 700; }
+  .vantora-bundle-picker__compare { text-decoration: line-through; color: rgba(0,0,0,.5); font-size: 14px; }
+  .vantora-bundle-picker__savings { background: #d3f2dd; color: #1a7f37; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .vantora-bundle-picker__button { width: 100%; background: #111; color: #fff; border: 0; border-radius: 6px; padding: 12px 18px; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .vantora-bundle-picker__button:disabled { opacity: .6; cursor: default; }
+</style>
+
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
+<script>
+  (function () {
+    var root = document.currentScript.closest('.vantora-bundle-picker') || document.querySelector('.vantora-bundle-picker');
+    if (!root) return;
+
+    if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'bundle');
+
+    var button = root.querySelector('.vantora-bundle-picker__button');
+    var variantId = button.dataset.variantId;
+    if (!variantId) { button.disabled = true; return; }
+
+    button.addEventListener('click', function () {
+      if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'bundle');
+      button.disabled = true;
+      var originalText = button.textContent;
+      button.textContent = 'Adding...';
+
+      var item = { id: variantId, quantity: 1, properties: { _vantora_source: 'bundle' } };
+      var addPromise = window.VantoraCart
+        ? VantoraCart.add(item)
+        : fetch('/cart/add.js', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
+
+      addPromise
+        .then(function () { button.textContent = 'Added!'; setTimeout(function () { button.textContent = originalText; button.disabled = false; }, 1500); })
+        .catch(function (err) { console.error('Vantora bundle add failed', err); button.textContent = originalText; button.disabled = false; });
+    });
+  })();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Vantora: Bundle",
+  "target": "section",
+  "settings": [
+    { "type": "paragraph", "content": "Configured in the Vantora app (Offers > Bundle). Add this block to the bundle product's own page -- it only shows there, and only once a Bundle is activated for it." }
+  ]
+}
+{% endschema %}
