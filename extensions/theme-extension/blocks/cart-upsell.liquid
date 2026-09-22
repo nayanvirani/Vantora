@@ -1,18 +1,33 @@
 {% comment %}
   F-28 Cart Upsell (Pro, app embed). Renders recommended add-ons in the
   cart drawer/page. Picks are configured in the admin (manual or
-  AI-suggested) and synced to this block via a cart metafield-free approach:
-  it calls the app's public recommendations endpoint, keyed by the current
-  cart's product IDs, so recommendations stay live without a theme deploy.
+  AI-suggested) and reach this block two ways: the picks themselves come
+  live from the app's public recommendations endpoint (keyed by the
+  current cart's product IDs, so they stay fresh without a theme deploy);
+  heading/appearance come from the `vantora` shop metafield (written by
+  ThemeSettingsSyncService), falling back to this block's Theme Editor
+  settings -- see sticky-add-to-cart.liquid for why that's a whole-object
+  fallback rather than merged field-by-field.
 {% endcomment %}
+{% assign v = shop.metafields.vantora.cart_upsell.value %}
+{% if v %}
+  {% assign heading = v.heading %}
+  {% assign max_items = v.max_items %}
+  {% assign accent_color = v.accent_color %}
+{% else %}
+  {% assign heading = block.settings.heading %}
+  {% assign max_items = block.settings.max_items %}
+  {% assign accent_color = block.settings.accent_color %}
+{% endif %}
+
 <div
   id="vantora-cart-upsell"
   class="vantora-cart-upsell"
-  data-max-items="{{ block.settings.max_items }}"
-  style="--vantora-upsell-accent: {{ block.settings.accent_color }};"
+  data-max-items="{{ max_items }}"
+  style="--vantora-upsell-accent: {{ accent_color }};"
   {{ block.shopify_attributes }}
 >
-  <p class="vantora-cart-upsell__heading">{{ block.settings.heading }}</p>
+  <p class="vantora-cart-upsell__heading">{{ heading }}</p>
   <div class="vantora-cart-upsell__items" aria-live="polite"></div>
 </div>
 
@@ -47,9 +62,15 @@
     var template = document.getElementById('vantora-cart-upsell-item-template');
     var container = root.querySelector('.vantora-cart-upsell__items');
 
+    // Hidden until there's something to show -- the heading otherwise
+    // renders unconditionally (Liquid has no way to know at page-load
+    // time whether the recommendations call will return anything).
+    root.hidden = true;
+
     function render(recommendations) {
       container.innerHTML = '';
       var shown = recommendations.slice(0, maxItems);
+      root.hidden = shown.length === 0;
       if (shown.length && window.VantoraAnalytics) VantoraAnalytics.report('impression', 'cart_upsell');
 
       shown.forEach(function (product) {

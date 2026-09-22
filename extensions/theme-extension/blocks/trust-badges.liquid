@@ -1,13 +1,29 @@
 {% comment %}
   F-13 Trust Badges (app block). Merchant adds this block to the product
   or cart section via the theme editor.
+
+  Layout + labels resolve from the `vantora` shop metafield first (written
+  when the merchant saves this tool in the admin GUI), falling back to
+  this block's Theme Editor settings if that metafield doesn't exist yet
+  -- see sticky-add-to-cart.liquid for why this is whole-object, not
+  merged field-by-field. Icons are the one exception: the admin GUI has no
+  image upload yet, so icons always come from the Theme Editor's own
+  image_picker settings regardless of sync state, rather than silently
+  disappearing the moment a merchant saves labels through the app.
 {% endcomment %}
-<div class="vantora-trust-badges vantora-trust-badges--{{ block.settings.layout }}" {{ block.shopify_attributes }}>
+{% assign v = shop.metafields.vantora.trust_badges.value %}
+{% assign layout = v.layout | default: block.settings.layout %}
+
+<div class="vantora-trust-badges vantora-trust-badges--{{ layout }}" {{ block.shopify_attributes }}>
   {% for i in (1..6) %}
     {% assign icon_key = 'badge_' | append: i | append: '_icon' %}
     {% assign label_key = 'badge_' | append: i | append: '_label' %}
     {% assign icon = block.settings[icon_key] %}
-    {% assign label = block.settings[label_key] %}
+    {% if v %}
+      {% assign label = v[label_key] %}
+    {% else %}
+      {% assign label = block.settings[label_key] %}
+    {% endif %}
     {% if label != blank %}
       <div class="vantora-trust-badges__item">
         {% if icon %}

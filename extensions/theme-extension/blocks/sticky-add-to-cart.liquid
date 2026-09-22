@@ -2,23 +2,58 @@
   F-11 Sticky Add to Cart (app embed). Appears via Theme editor > App embeds.
   Renders only on product pages; reads live price/variant from the product
   object so it works without a backend round-trip.
+
+  Settings resolve from the `vantora` shop metafield first (written by
+  ThemeSettingsSyncService when the merchant saves this tool in the admin
+  GUI) and fall back to this block's own Theme Editor settings when that
+  metafield doesn't exist yet -- e.g. before the merchant has configured it
+  through the app at all. Whichever source is used, it's used wholesale
+  (not merged field-by-field): the GUI always saves every field, so there's
+  no "some fields from the metafield, some from the block" split to reason
+  about, and it avoids Liquid's `default` filter treating an explicit
+  `false` the same as "unset" for the checkbox fields.
 {% endcomment %}
+{% assign v = shop.metafields.vantora.sticky_atc.value %}
+{% if v %}
+  {% assign position = v.position %}
+  {% assign button_text = v.button_text %}
+  {% assign background_color = v.background_color %}
+  {% assign text_color = v.text_color %}
+  {% assign show_image = v.show_image %}
+  {% assign show_price = v.show_price %}
+  {% assign show_variant_selector = v.show_variant_selector %}
+  {% assign show_desktop = v.show_desktop %}
+  {% assign show_mobile = v.show_mobile %}
+  {% assign scroll_trigger = v.scroll_trigger %}
+{% else %}
+  {% assign position = block.settings.position %}
+  {% assign button_text = block.settings.button_text %}
+  {% assign background_color = block.settings.background_color %}
+  {% assign text_color = block.settings.text_color %}
+  {% assign show_image = block.settings.show_image %}
+  {% assign show_price = block.settings.show_price %}
+  {% assign show_variant_selector = block.settings.show_variant_selector %}
+  {% assign show_desktop = block.settings.show_desktop %}
+  {% assign show_mobile = block.settings.show_mobile %}
+  {% assign scroll_trigger = block.settings.scroll_trigger %}
+{% endif %}
+
 {% if product %}
   <div
     id="vantora-sticky-atc"
-    class="vantora-sticky-atc vantora-sticky-atc--{{ block.settings.position }}"
-    data-position="{{ block.settings.position }}"
-    data-scroll-trigger="{{ block.settings.scroll_trigger }}"
-    data-show-desktop="{{ block.settings.show_desktop }}"
-    data-show-mobile="{{ block.settings.show_mobile }}"
-    style="--vantora-atc-bg: {{ block.settings.background_color }}; --vantora-atc-text: {{ block.settings.text_color }}; display: none;"
+    class="vantora-sticky-atc vantora-sticky-atc--{{ position }}"
+    data-position="{{ position }}"
+    data-scroll-trigger="{{ scroll_trigger }}"
+    data-show-desktop="{{ show_desktop }}"
+    data-show-mobile="{{ show_mobile }}"
+    style="--vantora-atc-bg: {{ background_color }}; --vantora-atc-text: {{ text_color }}; display: none;"
     {{ block.shopify_attributes }}
   >
     <form method="post" action="{{ routes.cart_add_url }}" class="vantora-sticky-atc__form">
       <input type="hidden" name="id" id="vantora-sticky-atc-variant-id" value="{{ product.selected_or_first_available_variant.id }}">
       <input type="hidden" name="properties[_vantora_source]" value="sticky_atc">
 
-      {% if block.settings.show_image %}
+      {% if show_image %}
         <img
           class="vantora-sticky-atc__image"
           src="{{ product.featured_image | image_url: width: 80 }}"
@@ -30,7 +65,7 @@
 
       <span class="vantora-sticky-atc__title">{{ product.title }}</span>
 
-      {% if block.settings.show_variant_selector and product.has_only_default_variant == false %}
+      {% if show_variant_selector and product.has_only_default_variant == false %}
         <select name="id" class="vantora-sticky-atc__variant-select" aria-label="Variant">
           {% for variant in product.variants %}
             <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %}>
@@ -40,12 +75,12 @@
         </select>
       {% endif %}
 
-      {% if block.settings.show_price %}
+      {% if show_price %}
         <span class="vantora-sticky-atc__price">{{ product.selected_or_first_available_variant.price | money }}</span>
       {% endif %}
 
       <button type="submit" class="vantora-sticky-atc__button">
-        {{ block.settings.button_text | default: 'Add to cart' }}
+        {{ button_text | default: 'Add to cart' }}
       </button>
     </form>
   </div>

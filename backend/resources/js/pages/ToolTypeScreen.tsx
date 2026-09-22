@@ -12,6 +12,11 @@ const STATUS_TONE: Record<string, 'success' | 'info' | undefined> = {
   paused: 'info',
 };
 
+// Kept in sync with FeatureConfigController::SINGLETON_TYPES: these render
+// as one shop-wide widget (one shop metafield slot), so a second config has
+// nowhere to apply -- skip the list screen and edit the one config directly.
+const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'trust_badges', 'faq', 'goal_tracker', 'cart_upsell'];
+
 function defaultsFor(type: string): Record<string, unknown> {
   const values: Record<string, unknown> = {};
   TYPE_SCHEMAS[type]?.sections.forEach((section) =>
@@ -34,18 +39,34 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
 
   const schema = TYPE_SCHEMAS[type];
   const label = featureLabel(type);
+  const isSingleton = SINGLETON_TYPES.includes(type);
 
   const load = useCallback(() => {
     setLoading(true);
     api
       .get<FeatureConfig[]>(`/api/feature-configs?type=${type}`)
-      .then(setConfigs)
+      .then((result) => {
+        setConfigs(result);
+        return result;
+      })
       .finally(() => setLoading(false));
   }, [type]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Singleton tools (one shop-wide widget) skip the list screen entirely --
+  // jump straight into editing the one config, creating its draft on the fly.
+  useEffect(() => {
+    if (!isSingleton || loading || editing) return;
+    if (configs.length > 0) {
+      openEdit(configs[0]);
+    } else {
+      openNew();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSingleton, loading, configs]);
 
   const openNew = () => {
     setEditing('new');
@@ -120,11 +141,17 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
   };
 
   if (editing) {
+    const editingConfig = editing === 'new' ? null : editing;
     return (
       <Page
-        title={editing === 'new' ? `New ${label}` : `Edit ${label}`}
-        backAction={{ content: label, onAction: () => setEditing(null) }}
+        title={isSingleton ? label : editing === 'new' ? `New ${label}` : `Edit ${label}`}
+        backAction={{ content: isSingleton ? 'Back' : label, onAction: () => (isSingleton ? onBack() : setEditing(null)) }}
         primaryAction={{ content: 'Save and activate', loading: saving, onAction: save }}
+        secondaryActions={
+          isSingleton && editingConfig?.status === 'active'
+            ? [{ content: 'Turn off', loading: busyId === editingConfig.id, onAction: () => deactivate(editingConfig) }]
+            : undefined
+        }
       >
         <Layout>
           <Layout.Section>
@@ -132,6 +159,11 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
               {error && (
                 <Banner tone="critical" onDismiss={() => setError(null)}>
                   {error}
+                </Banner>
+              )}
+              {isSingleton && editingConfig && (
+                <Banner tone={editingConfig.status === 'active' ? 'success' : 'info'}>
+                  {editingConfig.status === 'active' ? 'Live on your storefront.' : 'Not live yet -- save to turn it on.'}
                 </Banner>
               )}
               <Card>
@@ -156,6 +188,10 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
         </Layout>
       </Page>
     );
+  }
+
+  if (isSingleton) {
+    return <Page title={label} backAction={{ content: 'Back', onAction: onBack }} />;
   }
 
   return (

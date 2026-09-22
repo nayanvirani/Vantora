@@ -382,6 +382,7 @@ function Field({ field, values, onChange }: { field: FieldDef; values: Values; o
           options={field.options}
           value={(value as string) ?? field.default}
           onChange={(v) => onChange(field.key, v)}
+          helpText={field.helpText}
         />
       );
     case 'checkbox':

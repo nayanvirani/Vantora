@@ -1,0 +1,127 @@
+{% comment %}
+  F-15 Free Gift (app embed). The free-gift-discount Function only makes an
+  already-present gift line free (Discount Functions can't add cart lines --
+  see free-gift-discount/src/run.js) -- this block is the other half: it
+  adds the merchant's chosen gift variant to the cart once a trigger is met,
+  and keeps it there at exactly one unit for as long as the trigger stays
+  met, so a customer can't stack it or discount-farm it by bumping the
+  quantity, and doesn't end up manually deleting it and then paying full
+  price for whatever's left (the Function would just stop discounting a
+  gift line that no longer exists).
+
+  A shop can have more than one active free-gift rule, so offers are
+  fetched from the app proxy (/apps/vantora/free-gifts) rather than a
+  single shop metafield -- same reasoning as frequently-bought-together.liquid.
+
+  Note on "can't be removed": this can only react to the cart, not block a
+  theme's native remove/quantity controls outright -- if a shopper removes
+  the gift line or edits its quantity, this notices on the next cart
+  refresh and corrects it back, rather than preventing the click itself.
+{% endcomment %}
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script>
+  (function () {
+    var offers = [];
+    var busy = false;
+
+    function triggerMet(cart, trigger) {
+      if (trigger.type === 'spend_threshold') {
+        return (cart.total_price / 100) >= trigger.amount;
+      }
+      if (trigger.type === 'product') {
+        return cart.items.some(function (item) {
+          return String(item.product_id) === String(trigger.productId);
+        });
+      }
+      return false;
+    }
+
+    function isVantoraGiftLine(item) {
+      return !!(item.properties && item.properties._vantora_gift);
+    }
+
+    function reconcile() {
+      if (busy || !offers.length) return;
+
+      fetch('/cart.js')
+        .then(function (res) { return res.json(); })
+        .then(function (cart) {
+          var eligible = offers.find(function (offer) { return triggerMet(cart, offer.trigger); });
+
+          var staleLines = cart.items.filter(function (item) {
+            return isVantoraGiftLine(item) && (!eligible || String(item.variant_id) !== String(eligible.gift_variant_id));
+          });
+
+          if (staleLines.length) {
+            var updates = {};
+            staleLines.forEach(function (line) { updates[line.key] = 0; });
+            busy = true;
+            fetch('/cart/change.js', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ updates: updates }),
+            })
+              .then(function () {
+                busy = false;
+                document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
+              })
+              .catch(function (err) { busy = false; console.error('Vantora free gift removal failed', err); });
+            return;
+          }
+
+          if (!eligible) return;
+
+          var giftLine = cart.items.find(function (item) {
+            return isVantoraGiftLine(item) && String(item.variant_id) === String(eligible.gift_variant_id);
+          });
+
+          if (!giftLine) {
+            busy = true;
+            fetch('/cart/add.js', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: eligible.gift_variant_id,
+                quantity: 1,
+                properties: { _vantora_gift: '1', _vantora_source: 'free_gift' },
+              }),
+            })
+              .then(function () {
+                busy = false;
+                if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'free_gift');
+                document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
+              })
+              .catch(function (err) { busy = false; console.error('Vantora free gift add failed', err); });
+          } else if (giftLine.quantity !== 1) {
+            busy = true;
+            fetch('/cart/change.js', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: giftLine.key, quantity: 1 }),
+            })
+              .then(function () { busy = false; })
+              .catch(function (err) { busy = false; console.error('Vantora free gift quantity fix failed', err); });
+          }
+        })
+        .catch(function (err) { console.error('Vantora free gift reconcile failed', err); });
+    }
+
+    fetch('/apps/vantora/free-gifts')
+      .then(function (res) { return res.ok ? res.json() : { offers: [] }; })
+      .then(function (data) {
+        offers = data.offers || [];
+        if (offers.length) reconcile();
+      })
+      .catch(function (err) { console.error('Vantora free gift offers failed to load', err); });
+
+    document.addEventListener('vantora:cart-updated', reconcile);
+    document.addEventListener('cart:refresh', reconcile);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Vantora: Free Gift",
+  "target": "body"
+}
+{% endschema %}

@@ -1,12 +1,45 @@
 {% comment %}
   F-12 Free Shipping Bar (app embed). Reads the live cart total client-side
   via /cart.js so the progress bar stays accurate across AJAX cart updates.
+
+  Settings resolve from the `vantora` shop metafield first (written when
+  the merchant saves this tool in the admin GUI), falling back to this
+  block's Theme Editor settings if that metafield doesn't exist yet. See
+  sticky-add-to-cart.liquid for why this is a whole-object fallback rather
+  than merged field-by-field.
 {% endcomment %}
+{% assign v = shop.metafields.vantora.shipping_bar.value %}
+{% if v %}
+  {% assign threshold = v.threshold %}
+  {% assign position = v.position %}
+  {% assign progress_message = v.progress_message %}
+  {% assign success_message = v.success_message %}
+  {% assign background_color = v.background_color %}
+  {% assign progress_color = v.progress_color %}
+  {% assign text_color = v.text_color %}
+{% else %}
+  {% assign threshold = block.settings.threshold %}
+  {% assign position = block.settings.position %}
+  {% assign progress_message = block.settings.progress_message %}
+  {% assign success_message = block.settings.success_message %}
+  {% assign background_color = block.settings.background_color %}
+  {% assign progress_color = block.settings.progress_color %}
+  {% assign text_color = block.settings.text_color %}
+{% endif %}
+
+{% comment %}
+  "top" is a sitewide banner by design. "cart" is gated to the cart page,
+  same as cart-goal-tracker.liquid; "cart_drawer" renders as a floating
+  widget since this block can't reach inside the theme's own drawer markup.
+{% endcomment %}
+{% if position == 'cart' and template != 'cart' %}
+  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
+{% else %}
 <div
   id="vantora-shipping-bar"
-  class="vantora-shipping-bar vantora-shipping-bar--{{ block.settings.position }}"
-  data-threshold-cents="{{ block.settings.threshold | times: 100 | round }}"
-  style="--vantora-bar-bg: {{ block.settings.background_color }}; --vantora-bar-fill: {{ block.settings.progress_color }}; --vantora-bar-text: {{ block.settings.text_color }};"
+  class="vantora-shipping-bar vantora-shipping-bar--{{ position }}"
+  data-threshold-cents="{{ threshold | times: 100 | round }}"
+  style="--vantora-bar-bg: {{ background_color }}; --vantora-bar-fill: {{ progress_color }}; --vantora-bar-text: {{ text_color }};"
   {{ block.shopify_attributes }}
 >
   <p class="vantora-shipping-bar__message"></p>
@@ -31,8 +64,8 @@
     if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'shipping_bar');
 
     var thresholdCents = parseInt(el.dataset.thresholdCents, 10) || 0;
-    var progressTemplate = {{ block.settings.progress_message | json }};
-    var successTemplate = {{ block.settings.success_message | json }};
+    var progressTemplate = {{ progress_message | json }};
+    var successTemplate = {{ success_message | json }};
 
     function money(cents) {
       return (cents / 100).toLocaleString(undefined, { style: 'currency', currency: (window.Shopify && Shopify.currency && Shopify.currency.active) || 'USD' });
@@ -64,6 +97,7 @@
     document.addEventListener('cart:refresh', refresh);
   })();
 </script>
+{% endif %}
 
 {% schema %}
 {

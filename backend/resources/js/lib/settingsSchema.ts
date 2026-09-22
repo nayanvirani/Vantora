@@ -17,7 +17,7 @@ export type FieldDef =
   | { type: 'textarea'; key: string; label: string; default?: string; helpText?: string }
   | { type: 'number'; key: string; label: string; default?: number; min?: number; max?: number; prefix?: string }
   | { type: 'color'; key: string; label: string; default?: string }
-  | { type: 'select'; key: string; label: string; options: Array<{ label: string; value: string }>; default?: string }
+  | { type: 'select'; key: string; label: string; options: Array<{ label: string; value: string }>; default?: string; helpText?: string }
   | { type: 'checkbox'; key: string; label: string; default?: boolean }
   | { type: 'range'; key: string; label: string; min: number; max: number; default?: number }
   | { type: 'product'; key: string; label: string; helpText?: string }
@@ -196,6 +196,17 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
       {
         title: 'Appearance',
         fields: [
+          {
+            type: 'select',
+            key: 'position',
+            label: 'Where it shows',
+            default: 'cart',
+            helpText: 'Only ever shows on the cart page or cart drawer -- never on other pages.',
+            options: [
+              { label: 'Cart page', value: 'cart' },
+              { label: 'Cart drawer', value: 'cart_drawer' },
+            ],
+          },
           { type: 'color', key: 'background_color', label: 'Background color', default: '#f4f4f4' },
           { type: 'color', key: 'progress_color', label: 'Progress bar color', default: '#1a7f37' },
           { type: 'color', key: 'text_color', label: 'Text color', default: '#111111' },

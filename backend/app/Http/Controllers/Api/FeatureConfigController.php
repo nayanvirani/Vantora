@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 
 class FeatureConfigController extends Controller
 {
+    /**
+     * Types that render as one shop-wide widget (one shop metafield slot
+     * each, via ThemeSettingsSyncService) rather than per-product rules --
+     * a second config of the same type has nowhere to apply, so we only
+     * ever let one exist per shop.
+     */
+    protected const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'trust_badges', 'faq', 'goal_tracker', 'cart_upsell'];
+
     public function __construct(protected PlanGateService $planGate, protected FeatureActivationService $activation)
     {
     }
@@ -54,6 +62,18 @@ class FeatureConfigController extends Controller
                 'message' => "You've reached your Starter plan limit. Upgrade to Pro to unlock unlimited tools, funnels and checkout extensions.",
                 'upgrade_required' => true,
             ], 403);
+        }
+
+        if (in_array($data['type'], self::SINGLETON_TYPES, true)) {
+            $existing = FeatureConfig::query()
+                ->where('shop_id', $shop->id)
+                ->where('type', $data['type'])
+                ->orderByDesc('id')
+                ->first();
+
+            if ($existing) {
+                return response()->json($existing, 200);
+            }
         }
 
         $config = FeatureConfig::query()->create([

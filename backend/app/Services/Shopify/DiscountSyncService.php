@@ -5,6 +5,7 @@ namespace App\Services\Shopify;
 use App\Models\FeatureConfig;
 use App\Models\Shop;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Turns an activated feature_config into a real Shopify discount (or, for
@@ -208,27 +209,40 @@ class DiscountSyncService
 
     protected function resolveFunctionId(Shop $shop, string $title): ?string
     {
-        return Cache::remember(
-            "shopify_function_id:{$shop->id}:{$title}",
-            now()->addHours(6),
-            function () use ($shop, $title) {
-                $client = new ShopifyApiClient($shop);
-                $nodes = $client->graphql(<<<'GQL'
-                    query {
-                        shopifyFunctions(first: 25) {
-                            nodes { id title apiType }
-                        }
-                    }
-                    GQL)->json('data.shopifyFunctions.nodes') ?? [];
+        $cacheKey = "shopify_function_id:{$shop->id}:{$title}";
 
-                foreach ($nodes as $node) {
-                    if ($node['title'] === $title) {
-                        return $node['id'];
-                    }
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $client = new ShopifyApiClient($shop);
+        $nodes = $client->graphql(<<<'GQL'
+            query {
+                shopifyFunctions(first: 25) {
+                    nodes { id title apiType }
                 }
-
-                return null;
             }
-        );
+            GQL)->json('data.shopifyFunctions.nodes') ?? [];
+
+        $id = null;
+        foreach ($nodes as $node) {
+            if ($node['title'] === $title) {
+                $id = $node['id'];
+                break;
+            }
+        }
+
+        if ($id !== null) {
+            Cache::put($cacheKey, $id, now()->addHours(6));
+        } else {
+            Log::warning('Could not resolve Shopify function id', [
+                'shop' => $shop->domain,
+                'title' => $title,
+                'available_titles' => array_column($nodes, 'title'),
+            ]);
+        }
+
+        return $id;
     }
 }

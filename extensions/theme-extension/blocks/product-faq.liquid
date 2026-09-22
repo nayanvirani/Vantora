@@ -1,19 +1,28 @@
 {% comment %}
   F-14 Product FAQ (app block). Accordion Q&A with FAQPage schema markup
-  for SEO. AI-suggested questions and per-product targeting are populated
-  from the app admin and synced to this block's settings/metafields.
+  for SEO.
+
+  Settings resolve from the `vantora` shop metafield first (written when
+  the merchant saves this tool in the admin GUI), falling back to this
+  block's Theme Editor settings if that metafield doesn't exist yet.
+  Every field here is text/textarea (no booleans), so unlike the other
+  blocks this can safely use Liquid's `default` filter on the whole
+  settings object at once instead of assigning each field individually --
+  `default` only mishandles explicit `false`, not missing hash keys.
 {% endcomment %}
+{% assign source = shop.metafields.vantora.faq.value | default: block.settings %}
+
 <div class="vantora-faq" {{ block.shopify_attributes }}>
-  {% if block.settings.heading != blank %}
-    <h3 class="vantora-faq__heading">{{ block.settings.heading }}</h3>
+  {% if source.heading != blank %}
+    <h3 class="vantora-faq__heading">{{ source.heading }}</h3>
   {% endif %}
 
   <div class="vantora-faq__list">
     {% for i in (1..8) %}
       {% assign q_key = 'question_' | append: i %}
       {% assign a_key = 'answer_' | append: i %}
-      {% assign question = block.settings[q_key] %}
-      {% assign answer = block.settings[a_key] %}
+      {% assign question = source[q_key] %}
+      {% assign answer = source[a_key] %}
       {% if question != blank and answer != blank %}
         <details class="vantora-faq__item">
           <summary class="vantora-faq__question">{{ question }}</summary>
@@ -47,8 +56,8 @@
     {% for i in (1..8) %}
       {% assign q_key = 'question_' | append: i %}
       {% assign a_key = 'answer_' | append: i %}
-      {% assign question = block.settings[q_key] %}
-      {% assign answer = block.settings[a_key] %}
+      {% assign question = source[q_key] %}
+      {% assign answer = source[a_key] %}
       {% if question != blank and answer != blank %}
         {% unless first %},{% endunless %}
         {% assign first = false %}

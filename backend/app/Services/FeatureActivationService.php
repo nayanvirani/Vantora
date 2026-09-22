@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\FeatureConfig;
 use App\Models\Shop;
 use App\Services\Shopify\DiscountSyncService;
+use App\Services\Shopify\ThemeSettingsSyncService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,8 +19,11 @@ class FeatureActivationService
     /** Types that need a Shopify Function synced via DiscountSyncService on activate. */
     protected const DISCOUNT_SYNCED_TYPES = ['quantity_discount', 'bogo', 'free_gift', 'bundle'];
 
-    public function __construct(protected PlanGateService $planGate, protected DiscountSyncService $discountSync)
-    {
+    public function __construct(
+        protected PlanGateService $planGate,
+        protected DiscountSyncService $discountSync,
+        protected ThemeSettingsSyncService $themeSync,
+    ) {
     }
 
     /**
@@ -27,14 +31,14 @@ class FeatureActivationService
      */
     public function activate(Shop $shop, FeatureConfig $config): array
     {
-        // Already active is NOT a no-op for discount-synced types: the
-        // GUI settings screen calls activate() every time a merchant edits
-        // and saves an already-active offer (there's no separate "just
-        // push the settings" action), so this has to re-sync rather than
-        // short-circuit -- otherwise an edited tier/discount/gift never
-        // reaches the actual Shopify discount, only feature_configs.settings.
+        // Already active is NOT a no-op: the GUI settings screen calls
+        // activate() every time a merchant edits and saves an already-active
+        // config (there's no separate "just push the settings" action), so
+        // this has to re-sync rather than short-circuit -- otherwise an
+        // edited color/tier/discount never reaches Shopify, only
+        // feature_configs.settings.
         if ($config->status === 'active') {
-            return $this->syncDiscountIfNeeded($shop, $config);
+            return $this->syncToShopify($shop, $config);
         }
 
         if (! $this->planGate->canActivateFeature($shop, $config->type)) {
@@ -45,7 +49,7 @@ class FeatureActivationService
             ];
         }
 
-        $syncResult = $this->syncDiscountIfNeeded($shop, $config);
+        $syncResult = $this->syncToShopify($shop, $config);
         if (! $syncResult['ok']) {
             return $syncResult;
         }
@@ -69,34 +73,54 @@ class FeatureActivationService
             $this->discountSync->remove($shop, $config);
         }
 
+        if ($this->themeSync->syncs($config->type)) {
+            $this->themeSync->remove($shop, $config);
+        }
+
         $config->update(['status' => 'paused']);
     }
 
     /**
      * @return array{ok: bool, message?: string}
      */
-    protected function syncDiscountIfNeeded(Shop $shop, FeatureConfig $config): array
+    protected function syncToShopify(Shop $shop, FeatureConfig $config): array
     {
-        if (! in_array($config->type, self::DISCOUNT_SYNCED_TYPES, true)) {
-            return ['ok' => true];
+        if (in_array($config->type, self::DISCOUNT_SYNCED_TYPES, true)) {
+            try {
+                $this->discountSync->sync($shop, $config);
+            } catch (\Throwable $e) {
+                Log::error('Discount sync failed on activate', [
+                    'shop' => $shop->domain,
+                    'feature_config_id' => $config->id,
+                    'type' => $config->type,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return [
+                    'ok' => false,
+                    'message' => 'Could not sync this configuration to Shopify.',
+                ];
+            }
         }
 
-        try {
-            $this->discountSync->sync($shop, $config);
+        if ($this->themeSync->syncs($config->type)) {
+            try {
+                $this->themeSync->sync($shop, $config);
+            } catch (\Throwable $e) {
+                Log::error('Theme settings sync failed on activate', [
+                    'shop' => $shop->domain,
+                    'feature_config_id' => $config->id,
+                    'type' => $config->type,
+                    'error' => $e->getMessage(),
+                ]);
 
-            return ['ok' => true];
-        } catch (\Throwable $e) {
-            Log::error('Discount sync failed on activate', [
-                'shop' => $shop->domain,
-                'feature_config_id' => $config->id,
-                'type' => $config->type,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'ok' => false,
-                'message' => 'Could not sync this configuration to Shopify.',
-            ];
+                return [
+                    'ok' => false,
+                    'message' => 'Could not sync this configuration to your storefront.',
+                ];
+            }
         }
+
+        return ['ok' => true];
     }
 }
