@@ -8,14 +8,19 @@ All extensions are deployed and released to the Partner Dashboard as of app vers
 **vantora-8** (`shopify app deploy`). The backend is deployed and live on Railway at
 `https://vantora-production.up.railway.app`, auto-deploying on every push to `main`.
 
-Note on `network_access`: deploying `thank-you-blocks` (which requests it) first
-produced a version (`vantora-7`) that built and validated but did **not**
-auto-release — Shopify said the capability "must be requested and approved" before a
-version carrying it can publish. The very next deploy (`vantora-8`, no extension
-changes beyond an auth fix) released normally with no such warning. Unclear whether
-that block only fires once per capability-introduction or whether approval happened
-in the background; either way, a released version is not the same claim as "verified
-working" — nothing here has been exercised against a live checkout.
+**`network_access` and post-purchase extension access are both approved** on this
+app's Partner Dashboard listing. That resolves a mystery from the last deploy: the
+first deploy of `thank-you-blocks` (which requests `network_access`) produced a
+version that built and validated but did **not** auto-release — Shopify said the
+capability "must be requested and approved" first — and the very next deploy
+(`vantora-8`) released cleanly with no such warning, which now makes sense: approval
+came through in between. Both capabilities being granted means F-33
+(`post-purchase-upsell`) and the `network_access`-gated Thank You blocks are no
+longer blocked on Shopify's side. They're still **functionally unverified** in the
+sense that matters most now — no dev store has been used to actually load them in a
+real checkout and click through the flow — but that's a testing gap, not a
+permissions gap, and the next step is straightforwardly to connect a dev store and
+try them rather than waiting on anything further from Shopify.
 
 ## Cross-cutting fixes from reviewing another Shopify/Laravel app's billing + checkout code
 
@@ -192,16 +197,16 @@ Not done: broader test coverage (audit engine, activation flow, webhooks), weekl
 is wired but unproven end-to-end (no mail provider configured — see Phase 4), App Store
 listing assets, App Store review submission.
 
-## Phase 6 — Post-purchase and Thank you, MVP-2 (weeks 13-16): **scaffolded, unverified**
+## Phase 6 — Post-purchase and Thank you, MVP-2 (weeks 13-16): **built, functionally unverified**
 
 `post-purchase-upsell` extension built against the documented
 `post-purchase-ui-extensions-react` API (ShouldRender → fetch best offer from
 `POST /post-purchase/best-offer` → ShouldRender caches it → Render shows it →
 accept calls `calculateChangeset`/`applyChangeset`). Deploy-validated (bundles and
-schema-checks clean) but **functionally untested** — this needs Shopify's
-post-purchase extension access grant (beta, access-by-request per spec section 2/13),
-which hasn't been applied for yet. **Apply for this early** — spec section 11 flags it
-as a lead-time risk, and F-33 is blocked on approval.
+schema-checks clean). **Shopify's post-purchase extension access grant is approved**
+on this app's Partner Dashboard listing — F-33 is not blocked on Shopify's side
+anymore. What's left is ordinary testing: no dev store has been used yet to actually
+install the app, place a test order, and click through the one-click-upsell flow.
 
 Backend: `PostPurchaseController::bestOffer` does simple cart-value-threshold matching
 against the `offers` table — a real v1, but also unverified against a live checkout.
@@ -213,13 +218,14 @@ Checkout UI Extensions API (`<s-*>` web components), confirmed correct against
 `@shopify/ui-extensions`'s own component/prop type definitions this time (not just
 reviewed) — this is a **different, newer API** than `post-purchase-upsell`'s
 `post-purchase-ui-extensions-react`, which is legacy and specific to the one-click
-upsell interstitial only. **Blocked from release**: it requests `network_access`
-(needed to call the backend for offer/survey/referral content), and Shopify requires
-separate Partner Dashboard approval for that capability on checkout-surface
-extensions before a version carrying it can go live — `shopify app deploy` created
-version `vantora-7` but did not release it. Request that approval before this ships.
-Backend: `ThankYouController` (`/thank-you/data`, `/thank-you/survey`) — unverified,
-same as everything else calling into a checkout/thank-you/post-purchase sandbox.
+upsell interstitial only. It requests `network_access` (needed to call the backend
+for offer/survey/referral content) — that capability is **approved** on this app's
+Partner Dashboard listing (see the note near the top of this file for the `vantora-7`
+→ `vantora-8` release history that reflects when approval landed), so it's live as of
+`vantora-8`. Backend: `ThankYouController` (`/thank-you/data`, `/thank-you/survey`,
+now session-token authenticated) — still functionally unverified against a real
+checkout, same as everything else in this phase; that's a testing gap now, not a
+permissions one.
 
 **Not started: F-36 Order Status Page Blocks.** Investigated and deliberately not
 guessed at: Order Status extensions live on a *different, separate* extension surface
@@ -269,6 +275,7 @@ quality even with the "no bugs" goal.
 - `AI_PROVIDER_API_KEY` and a real mail provider (`MAIL_MAILER` + Postmark/Resend
   credentials) both need to be set in Railway variables before F-19 and F-08's email
   actually work in production — the code path is complete, the credentials aren't set.
-- Checkout/thank-you `ui_extension`s that set `network_access = true` need Shopify's
-  approval before a version carrying them can be released (see Phase 6) — factor that
-  lead time in before adding a network call to any future F-40–F-45 extension too.
+- `network_access` for checkout/thank-you `ui_extension`s is approved on this app's
+  listing already (see Phase 6), so this isn't a blocker for any future F-40–F-45
+  extension that needs a network call — worth knowing it's a real Partner Dashboard
+  approval step in general, just not one this app is waiting on anymore.

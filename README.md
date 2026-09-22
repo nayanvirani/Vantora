@@ -82,7 +82,7 @@ use the Shopify CLI separately: `shopify app deploy` from the repo root (reads
 - Allowed redirection URL: `https://vantora-production.up.railway.app/auth/callback`
 - GDPR webhooks: point at `/webhooks/shopify/customers-data-request`,
   `/customers-redact`, `/shop-redact` (already declared in `shopify.app.toml`).
-- Apply for **post-purchase extension access** early — F-33 depends on it (see spec
-  section 13, Risks).
+- Post-purchase extension access and `network_access` are both approved on this
+  app's listing (spec section 13's risk about F-33's access grant is resolved).
 
 See `ROADMAP.md` for what's built vs. still open across the seven development phases.
