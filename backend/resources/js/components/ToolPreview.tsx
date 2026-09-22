@@ -49,7 +49,6 @@ function StickyBarPreview({ v }: { v: V }) {
       >
         {v.show_image !== false && <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,.25)', borderRadius: 4 }} />}
         <div style={{ flex: 1, fontSize: 13 }}>Sample Product</div>
-        {v.show_price !== false && <div style={{ fontSize: 13 }}>$29.99</div>}
         <div style={{ background: text, color: bg, borderRadius: 6, padding: '6px 14px', fontSize: 13, fontWeight: 600 }}>
           {str(v.button_text, 'Add to cart')}
         </div>

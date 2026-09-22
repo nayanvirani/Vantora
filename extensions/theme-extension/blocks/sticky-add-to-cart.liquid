@@ -1,14 +1,21 @@
 {% comment %}
   F-11 Sticky Add to Cart (app embed). Appears via Theme editor > App embeds.
-  Renders only on product pages; reads live price/variant from the product
-  object so it works without a backend round-trip.
+  Renders only on product pages.
+
+  Deliberately does NOT reimplement add-to-cart: a merchant reported it
+  "not working properly" (variant selection / price display edge cases,
+  and getting the theme's own cart drawer to open reliably -- themes have
+  no standard API for that, confirmed against shopify.dev). This is now a
+  simple nudge -- image, product name, one button -- that scrolls the
+  page to the theme's own real add-to-cart form/button on click and lets
+  the theme handle the rest (variant selection, price, cart drawer,
+  everything) exactly as it already does natively, with zero chance of
+  disagreeing with it.
 
   All content/appearance settings are configured in the Vantora app
-  (Storefront > Sticky Add to Cart), not here -- a merchant found having
-  the same settings editable in both the app AND the Theme Editor
-  confusing, and the Theme Editor copy never actually reached the
-  storefront anyway (the metafield always won once set). Renders nothing
-  until the merchant has configured and activated this in the app.
+  (Storefront > Sticky Add to Cart), not here -- see the schema note
+  below for why. Renders nothing until the merchant has configured and
+  activated this in the app.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.sticky_atc.value %}
 
@@ -18,8 +25,6 @@
   {% assign background_color = v.background_color %}
   {% assign text_color = v.text_color %}
   {% assign show_image = v.show_image %}
-  {% assign show_price = v.show_price %}
-  {% assign show_variant_selector = v.show_variant_selector %}
   {% assign show_desktop = v.show_desktop %}
   {% assign show_mobile = v.show_mobile %}
   {% assign scroll_trigger = v.scroll_trigger %}
@@ -33,40 +38,21 @@
     style="--vantora-atc-bg: {{ background_color }}; --vantora-atc-text: {{ text_color }}; display: none;"
     {{ block.shopify_attributes }}
   >
-    <form method="post" action="{{ routes.cart_add_url }}" class="vantora-sticky-atc__form">
-      <input type="hidden" name="id" id="vantora-sticky-atc-variant-id" value="{{ product.selected_or_first_available_variant.id }}">
-      <input type="hidden" name="properties[_vantora_source]" value="sticky_atc">
+    {% if show_image %}
+      <img
+        class="vantora-sticky-atc__image"
+        src="{{ product.featured_image | image_url: width: 80 }}"
+        alt="{{ product.featured_image.alt | escape }}"
+        width="40" height="40"
+        loading="lazy"
+      >
+    {% endif %}
 
-      {% if show_image %}
-        <img
-          class="vantora-sticky-atc__image"
-          src="{{ product.featured_image | image_url: width: 80 }}"
-          alt="{{ product.featured_image.alt | escape }}"
-          width="40" height="40"
-          loading="lazy"
-        >
-      {% endif %}
+    <span class="vantora-sticky-atc__title">{{ product.title }}</span>
 
-      <span class="vantora-sticky-atc__title">{{ product.title }}</span>
-
-      {% if show_variant_selector and product.has_only_default_variant == false %}
-        <select name="id" class="vantora-sticky-atc__variant-select" aria-label="Variant">
-          {% for variant in product.variants %}
-            <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %}>
-              {{ variant.title }}
-            </option>
-          {% endfor %}
-        </select>
-      {% endif %}
-
-      {% if show_price %}
-        <span class="vantora-sticky-atc__price">{{ product.selected_or_first_available_variant.price | money }}</span>
-      {% endif %}
-
-      <button type="submit" class="vantora-sticky-atc__button">
-        {{ button_text | default: 'Add to cart' }}
-      </button>
-    </form>
+    <button type="button" class="vantora-sticky-atc__button">
+      {{ button_text | default: 'Add to cart' }}
+    </button>
   </div>
 
   <style>
@@ -85,7 +71,6 @@
     }
     .vantora-sticky-atc--top { top: 0; }
     .vantora-sticky-atc--bottom { bottom: 0; }
-    .vantora-sticky-atc__form { display: flex; align-items: center; gap: 12px; width: 100%; }
     .vantora-sticky-atc__title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .vantora-sticky-atc__button {
       background: var(--vantora-atc-text, #fff);
@@ -101,7 +86,6 @@
   </style>
 
   <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
-  <script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
   <script>
     (function () {
       var bar = document.getElementById('vantora-sticky-atc');
@@ -110,7 +94,7 @@
       if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'sticky_atc');
 
       var trigger = bar.dataset.scrollTrigger === 'true';
-      var atcForm = document.querySelector('form[action^="/cart/add"]:not(.vantora-sticky-atc__form)');
+      var atcForm = document.querySelector('form[action^="/cart/add"]');
 
       function reveal() {
         bar.style.display = 'flex';
@@ -129,15 +113,11 @@
         reveal();
       }
 
-      bar.querySelector('.vantora-sticky-atc__form').addEventListener('submit', function (e) {
-        e.preventDefault();
+      bar.querySelector('.vantora-sticky-atc__button').addEventListener('click', function () {
         if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'sticky_atc');
-        var formData = new FormData(this);
-        VantoraCart.add({
-          id: formData.get('id'),
-          quantity: 1,
-          properties: { _vantora_source: formData.get('properties[_vantora_source]') },
-        }).catch(function (err) { console.error('Vantora sticky ATC add failed', err); });
+        if (!atcForm) return;
+        var target = atcForm.querySelector('[type="submit"], button') || atcForm;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
     })();
   </script>

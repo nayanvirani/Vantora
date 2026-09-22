@@ -92,8 +92,6 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
           { type: 'color', key: 'background_color', label: 'Background color', default: '#111111' },
           APPEARANCE_TEXT_COLOR,
           { type: 'checkbox', key: 'show_image', label: 'Show product image', default: true },
-          { type: 'checkbox', key: 'show_price', label: 'Show price', default: true },
-          { type: 'checkbox', key: 'show_variant_selector', label: 'Show variant selector', default: true },
         ],
       },
       DEVICE_SECTION,
