@@ -47,7 +47,12 @@ function Extension() {
     );
   }, [canAddCartLine]);
 
-  if (!canAddCartLine || !bundle) {
+  // Not `!bundle`: a 200 response with a JSON `null` body (no bundle to
+  // offer) parses via res.json() as `{}`, not `null` -- confirmed live,
+  // response()->json(null) on the Laravel side serializes to "{}". An
+  // empty object is truthy in JS, so check for a field the response
+  // always carries when there IS a bundle to offer instead.
+  if (!canAddCartLine || !bundle?.bundle_variant_id) {
     return null;
   }
 
