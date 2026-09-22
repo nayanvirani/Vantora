@@ -1,58 +1,48 @@
+import { BlockStack, InlineStack, Text, Button, Box, Banner } from '@shopify/polaris';
 import { useState } from 'react';
-import { BlockStack, InlineStack, Text, Button, Box, Banner, Collapsible } from '@shopify/polaris';
-import { ChevronDownIcon, ChevronUpIcon } from '@shopify/polaris-icons';
 
 /**
- * Copy-pasteable code for tools whose ideal spot (the cart drawer) most
- * themes don't expose as an app-block-addable section -- see
- * lib/codeSnippets.ts for why. Collapsed by default since most merchants
- * will use the app-block version; this is the "my theme/developer needs
- * exact placement" escape hatch.
+ * Placement instructions for tools rendered by the "Vantora: Cart
+ * Widgets" app embed -- one placeholder div, nothing else. See
+ * lib/codeSnippets.ts for why this replaced full copy-paste code.
  */
-export default function CodeSnippet({ code }: { code: string }) {
-  const [open, setOpen] = useState(false);
+export default function CodeSnippet({ placeholderId }: { placeholderId: string }) {
   const [copied, setCopied] = useState(false);
+  const div = `<div id="${placeholderId}"></div>`;
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(div);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API can be unavailable (permissions, older browsers) --
-      // the code is still selectable/copyable by hand from the box below.
+      // Clipboard API can be unavailable -- the line is still selectable by hand below.
     }
   };
 
   return (
-    <BlockStack gap="200">
-      <Button variant="plain" textAlign="left" fullWidth onClick={() => setOpen((v) => !v)} icon={open ? ChevronUpIcon : ChevronDownIcon}>
-        Advanced: add this manually via theme code
-      </Button>
-      <Collapsible open={open} id="code-snippet">
-        <BlockStack gap="300">
-          <Text as="p" tone="subdued">
-            Most themes' cart drawers aren't set up to accept app blocks placed through the Theme Editor. If yours isn't
-            either, paste this into your theme code instead (Online Store &gt; Themes &gt; Edit code) — inside{' '}
-            <Text as="span" fontWeight="semibold">
-              snippets/cart-drawer.liquid
-            </Text>{' '}
-            (or wherever you want it to show) works on any theme, since it's plain code rather than an app block.
-          </Text>
-          <Box background="bg-surface-secondary" padding="300" borderRadius="200">
-            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12, fontFamily: 'monospace', maxHeight: 300, overflow: 'auto' }}>
-              {code}
-            </pre>
-          </Box>
-          <InlineStack>
-            <Button onClick={copy}>{copied ? 'Copied!' : 'Copy code'}</Button>
-          </InlineStack>
-          <Banner tone="info">
-            This reads the same settings you save in this screen — no separate setup. If you later change settings here,
-            the pasted code picks them up automatically.
-          </Banner>
-        </BlockStack>
-      </Collapsible>
+    <BlockStack gap="300">
+      <Text as="h3" variant="headingSm">
+        Where this shows
+      </Text>
+      <Text as="p" tone="subdued">
+        1. Turn on the <Text as="span" fontWeight="semibold">Vantora: Cart Widgets</Text> app embed once (Theme Editor
+        &gt; App embeds) -- it&apos;s what looks for the placeholder below and renders into it.
+      </Text>
+      <Text as="p" tone="subdued">
+        2. Paste this one line wherever you want it to appear (Online Store &gt; Themes &gt; Edit code) -- the cart
+        page, or directly inside your theme&apos;s cart drawer file if it has one. No other code needed.
+      </Text>
+      <Box background="bg-surface-secondary" padding="300" borderRadius="200">
+        <pre style={{ margin: 0, fontSize: 13, fontFamily: 'monospace' }}>{div}</pre>
+      </Box>
+      <InlineStack>
+        <Button onClick={copy}>{copied ? 'Copied!' : 'Copy'}</Button>
+      </InlineStack>
+      <Banner tone="info">
+        Reads whatever you save in this screen automatically -- change settings here any time, no need to touch the
+        theme code again.
+      </Banner>
     </BlockStack>
   );
 }

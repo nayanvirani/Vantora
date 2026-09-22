@@ -1,0 +1,41 @@
+{% comment %}
+  F-12/F-28/F-31 Free Shipping Bar, Cart Upsell, Cart Goal Tracker --
+  consolidated into one app embed after a merchant asked for something
+  simpler than either the app-block system (can't reach a theme's own
+  cart drawer, since most themes -- confirmed for Dawn -- don't expose it
+  as an app-block-addable section) or full copy-paste code.
+
+  This is a single sitewide app embed (switch on once via Theme Editor >
+  App embeds) that looks for three known placeholder IDs anywhere in the
+  page and renders the matching widget into whichever ones it finds --
+  wherever the merchant put them, including pasted directly into
+  snippets/cart-drawer.liquid:
+
+    <div id="vantora-shipping-bar"></div>
+    <div id="vantora-cart-goal-tracker"></div>
+    <div id="vantora-cart-upsell"></div>
+
+  No other code needed in that div. A div for a tool the merchant hasn't
+  configured/activated in the app is simply left empty. document-wide
+  getElementById finds a placeholder regardless of where in the DOM this
+  embed's own script tag physically renders (always sitewide, at the end
+  of body), so it works whether the placeholder is on the cart page, in
+  the drawer, or anywhere else.
+{% endcomment %}
+<script>
+  window.__VANTORA_SETTINGS__ = {
+    shipping_bar: {{ shop.metafields.vantora.shipping_bar.value | json }},
+    goal_tracker: {{ shop.metafields.vantora.goal_tracker.value | json }},
+    cart_upsell: {{ shop.metafields.vantora.cart_upsell.value | json }}
+  };
+</script>
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
+<script src="{{ 'vantora-cart-widgets.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Vantora: Cart Widgets",
+  "target": "body"
+}
+{% endschema %}
