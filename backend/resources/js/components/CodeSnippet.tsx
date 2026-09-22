@@ -6,9 +6,9 @@ import { useState } from 'react';
  * Widgets" app embed -- one placeholder div, nothing else. See
  * lib/codeSnippets.ts for why this replaced full copy-paste code.
  */
-export default function CodeSnippet({ placeholderId }: { placeholderId: string }) {
+export default function CodeSnippet({ placeholderClass }: { placeholderClass: string }) {
   const [copied, setCopied] = useState(false);
-  const div = `<div id="${placeholderId}"></div>`;
+  const div = `<div class="${placeholderClass}"></div>`;
 
   const copy = async () => {
     try {
@@ -31,7 +31,8 @@ export default function CodeSnippet({ placeholderId }: { placeholderId: string }
       </Text>
       <Text as="p" tone="subdued">
         2. Paste this one line wherever you want it to appear (Online Store &gt; Themes &gt; Edit code) -- the cart
-        page, or directly inside your theme&apos;s cart drawer file if it has one. No other code needed.
+        page, or directly inside your theme&apos;s cart drawer file if it has one. No other code needed. It&apos;s
+        safe to paste in more than one place at once (e.g. both the cart page and the drawer).
       </Text>
       <Box background="bg-surface-secondary" padding="300" borderRadius="200">
         <pre style={{ margin: 0, fontSize: 13, fontFamily: 'monospace' }}>{div}</pre>

@@ -3,7 +3,7 @@ import { Page, Layout, Card, Text, Button, BlockStack, InlineStack, Badge, Banne
 import { api, type FeatureConfig, type ProductLookupEntry } from '../lib/api';
 import { TYPE_SCHEMAS, collectProductIds } from '../lib/settingsSchema';
 import { featureLabel, featureIcon } from '../lib/featureTypes';
-import { PLACEHOLDER_IDS } from '../lib/codeSnippets';
+import { PLACEHOLDER_CLASSES } from '../lib/codeSnippets';
 import SettingsForm from '../components/SettingsForm';
 import ToolPreview from '../components/ToolPreview';
 import IconTile from '../components/IconTile';
@@ -192,9 +192,9 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
                   lookup={lookup}
                 />
               </Card>
-              {PLACEHOLDER_IDS[type] && (
+              {PLACEHOLDER_CLASSES[type] && (
                 <Card>
-                  <CodeSnippet placeholderId={PLACEHOLDER_IDS[type]} />
+                  <CodeSnippet placeholderClass={PLACEHOLDER_CLASSES[type]} />
                 </Card>
               )}
             </BlockStack>

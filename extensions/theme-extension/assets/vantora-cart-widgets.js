@@ -1,13 +1,21 @@
 /**
- * Hydrates whichever of the three placeholder divs a merchant has pasted
- * into their theme -- anywhere, including directly inside their cart
- * drawer template. A merchant asked for something simpler than either
- * app blocks (can't reach most themes' cart drawer markup) or full
- * copy-paste code: just a bare div, nothing else.
+ * Hydrates every placeholder element a merchant has pasted into their
+ * theme -- anywhere, including directly inside their cart drawer
+ * template. A merchant asked for something simpler than either app
+ * blocks (can't reach most themes' cart drawer markup) or full
+ * copy-paste code: just a bare element, nothing else.
  *
- *   <div id="vantora-shipping-bar"></div>
- *   <div id="vantora-cart-goal-tracker"></div>
- *   <div id="vantora-cart-upsell"></div>
+ *   <div class="vantora-shipping-bar"></div>
+ *   <div class="vantora-cart-goal-tracker"></div>
+ *   <div class="vantora-cart-upsell"></div>
+ *
+ * Classes, not IDs: a cart drawer's markup is typically included
+ * globally (present on every page, not just /cart), so if a merchant
+ * also wants a copy on the dedicated cart page, BOTH placeholders exist
+ * in the same page's DOM at once. IDs must be unique per page --
+ * getElementById would only ever find and hydrate the first one,
+ * leaving the second silently empty. querySelectorAll + a loop hydrates
+ * however many instances of each placeholder exist on a given page.
  *
  * Settings come from window.__VANTORA_SETTINGS__, inlined by
  * vantora-cart-widgets.liquid from the same `vantora` shop metafield the
@@ -25,10 +33,17 @@
     });
   }
 
-  function initShippingBar() {
+  function forEachPlaceholder(className, fn) {
+    document.querySelectorAll('.' + className).forEach(function (el) {
+      if (el.dataset.vantoraHydrated) return;
+      el.dataset.vantoraHydrated = '1';
+      fn(el);
+    });
+  }
+
+  function initShippingBar(el) {
     var v = SETTINGS.shipping_bar;
-    var el = document.getElementById('vantora-shipping-bar');
-    if (!el || !v) return;
+    if (!v) return;
 
     el.innerHTML =
       '<div style="padding:10px 16px;background:' + (v.background_color || '#f4f4f4') + ';color:' + (v.text_color || '#111') + ';text-align:center;font-size:14px;">' +
@@ -63,10 +78,9 @@
     document.addEventListener('cart:refresh', refresh);
   }
 
-  function initGoalTracker() {
+  function initGoalTracker(el) {
     var v = SETTINGS.goal_tracker;
-    var el = document.getElementById('vantora-cart-goal-tracker');
-    if (!el || !v) return;
+    if (!v) return;
 
     var tiers = [];
     [1, 2, 3].forEach(function (i) {
@@ -119,10 +133,9 @@
     document.addEventListener('cart:refresh', refresh);
   }
 
-  function initCartUpsell() {
+  function initCartUpsell(root) {
     var v = SETTINGS.cart_upsell;
-    var root = document.getElementById('vantora-cart-upsell');
-    if (!root || !v) return;
+    if (!v) return;
 
     root.innerHTML =
       '<div style="padding:12px 0;">' +
@@ -198,7 +211,7 @@
     document.addEventListener('cart:refresh', refresh);
   }
 
-  initShippingBar();
-  initGoalTracker();
-  initCartUpsell();
+  forEachPlaceholder('vantora-shipping-bar', initShippingBar);
+  forEachPlaceholder('vantora-cart-goal-tracker', initGoalTracker);
+  forEachPlaceholder('vantora-cart-upsell', initCartUpsell);
 })();

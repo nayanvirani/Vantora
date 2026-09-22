@@ -6,21 +6,25 @@
   as an app-block-addable section) or full copy-paste code.
 
   This is a single sitewide app embed (switch on once via Theme Editor >
-  App embeds) that looks for three known placeholder IDs anywhere in the
-  page and renders the matching widget into whichever ones it finds --
+  App embeds) that looks for three known placeholder classes anywhere in
+  the page and renders the matching widget into every element it finds --
   wherever the merchant put them, including pasted directly into
   snippets/cart-drawer.liquid:
 
-    <div id="vantora-shipping-bar"></div>
-    <div id="vantora-cart-goal-tracker"></div>
-    <div id="vantora-cart-upsell"></div>
+    <div class="vantora-shipping-bar"></div>
+    <div class="vantora-cart-goal-tracker"></div>
+    <div class="vantora-cart-upsell"></div>
 
   No other code needed in that div. A div for a tool the merchant hasn't
-  configured/activated in the app is simply left empty. document-wide
-  getElementById finds a placeholder regardless of where in the DOM this
-  embed's own script tag physically renders (always sitewide, at the end
-  of body), so it works whether the placeholder is on the cart page, in
-  the drawer, or anywhere else.
+  configured/activated in the app is simply left empty. Classes, not IDs:
+  cart drawer markup is typically included globally (present on every
+  page, not just /cart), so a merchant who also wants a copy on the
+  dedicated cart page ends up with two placeholders in the same page's
+  DOM -- IDs must be unique per page and getElementById would only ever
+  find the first one, leaving the second silently empty.
+  document-wide querySelectorAll finds every instance regardless of
+  where in the DOM this embed's own script tag physically renders
+  (always sitewide, at the end of body).
 {% endcomment %}
 <script>
   window.__VANTORA_SETTINGS__ = {
