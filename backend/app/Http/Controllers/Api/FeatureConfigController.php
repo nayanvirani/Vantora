@@ -14,9 +14,13 @@ class FeatureConfigController extends Controller
      * Types that render as one shop-wide widget (one shop metafield slot
      * each, via ThemeSettingsSyncService) rather than per-product rules --
      * a second config of the same type has nowhere to apply, so we only
-     * ever let one exist per shop.
+     * ever let one exist per shop. trust_badges/faq are deliberately NOT
+     * here even though they also go through ThemeSettingsSyncService:
+     * they support per-product targeting (settings.target_product_ids),
+     * so multiple configs legitimately coexist -- one untargeted config
+     * as the sitewide default plus targeted ones for specific products.
      */
-    protected const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'trust_badges', 'faq', 'goal_tracker', 'cart_upsell'];
+    protected const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'goal_tracker', 'cart_upsell'];
 
     public function __construct(protected PlanGateService $planGate, protected FeatureActivationService $activation)
     {

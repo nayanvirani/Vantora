@@ -2,15 +2,19 @@
   F-14 Product FAQ (app block). Accordion Q&A with FAQPage schema markup
   for SEO.
 
-  Settings resolve from the `vantora` shop metafield first (written when
-  the merchant saves this tool in the admin GUI), falling back to this
-  block's Theme Editor settings if that metafield doesn't exist yet.
-  Every field here is text/textarea (no booleans), so unlike the other
-  blocks this can safely use Liquid's `default` filter on the whole
-  settings object at once instead of assigning each field individually --
-  `default` only mishandles explicit `false`, not missing hash keys.
+  Settings resolve in order: a product-specific `vantora` metafield (a
+  merchant targeted this FAQ to specific products in the admin GUI), then
+  the shop-wide `vantora` metafield (untargeted / applies everywhere),
+  then this block's Theme Editor settings. Every field here is
+  text/textarea (no booleans), so unlike the other blocks this can safely
+  use Liquid's `default` filter on the whole settings object at once
+  instead of assigning each field individually -- `default` only
+  mishandles explicit `false`, not missing hash keys.
 {% endcomment %}
 {% assign source = shop.metafields.vantora.faq.value | default: block.settings %}
+{% if product %}
+  {% assign source = product.metafields.vantora.faq.value | default: source %}
+{% endif %}
 
 <div class="vantora-faq" {{ block.shopify_attributes }}>
   {% if source.heading != blank %}

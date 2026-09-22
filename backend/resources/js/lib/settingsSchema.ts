@@ -43,6 +43,23 @@ export type TypeSchema = {
 };
 
 const APPEARANCE_TEXT_COLOR: FieldDef = { type: 'color', key: 'text_color', label: 'Text color', default: '#ffffff' };
+
+// Built-in badge icon library (spec F-13: "Badge library plus custom
+// upload" -- this covers the library half; custom image upload needs
+// Shopify's staged-upload flow and isn't built yet). Values match the SVG
+// keys trust-badges.liquid renders, so a value saved here is never a
+// naming mismatch away from showing a blank icon.
+export const TRUST_BADGE_ICONS = [
+  { label: 'Shield', value: 'shield' },
+  { label: 'Lock', value: 'lock' },
+  { label: 'Truck', value: 'truck' },
+  { label: 'Refresh / Returns', value: 'refresh' },
+  { label: 'Check', value: 'check' },
+  { label: 'Star', value: 'star' },
+  { label: 'Card', value: 'card' },
+  { label: 'Support', value: 'support' },
+  { label: 'None', value: '' },
+];
 const DEVICE_SECTION: FieldSection = {
   title: 'Devices',
   fields: [
@@ -153,12 +170,32 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
       },
       {
         title: 'Badges',
-        fields: [1, 2, 3, 4, 5, 6].map((i) => ({
-          type: 'text' as const,
-          key: `badge_${i}_label`,
-          label: `Badge ${i} label`,
-          default: i === 1 ? 'Secure checkout' : i === 2 ? 'Money-back guarantee' : i === 3 ? 'Fast shipping' : '',
-        })),
+        fields: [1, 2, 3, 4, 5, 6].flatMap((i) => [
+          {
+            type: 'select' as const,
+            key: `badge_${i}_icon`,
+            label: `Badge ${i} icon`,
+            default: i === 1 ? 'lock' : i === 2 ? 'refresh' : i === 3 ? 'truck' : '',
+            options: TRUST_BADGE_ICONS,
+          },
+          {
+            type: 'text' as const,
+            key: `badge_${i}_label`,
+            label: `Badge ${i} label`,
+            default: i === 1 ? 'Secure checkout' : i === 2 ? 'Money-back guarantee' : i === 3 ? 'Fast shipping' : '',
+          },
+        ]),
+      },
+      {
+        title: 'Show on',
+        fields: [
+          {
+            type: 'products',
+            key: 'target_product_ids',
+            label: 'Specific products',
+            helpText: 'Leave empty to show on every product page.',
+          },
+        ],
       },
     ],
   },
@@ -174,6 +211,17 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
             { type: 'text' as const, key: `question_${i}`, label: `Question ${i}` },
             { type: 'textarea' as const, key: `answer_${i}`, label: `Answer ${i}` },
           ]),
+        ],
+      },
+      {
+        title: 'Show on',
+        fields: [
+          {
+            type: 'products',
+            key: 'target_product_ids',
+            label: 'Specific products',
+            helpText: 'Leave empty to show on every product page.',
+          },
         ],
       },
     ],

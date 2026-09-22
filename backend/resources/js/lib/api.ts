@@ -84,6 +84,11 @@ export type BillingStatus = {
   manage_plan_url: string;
 };
 
+export type UsageStatus = {
+  features: Record<string, { used: number; limit: number | null }>;
+  ai: { remaining: number | null; cap: number };
+};
+
 export type AuditIssue = {
   id: number;
   code: string;
@@ -131,6 +136,7 @@ export type RecipePreview = {
 export type AnalyticsData = {
   range_days: number;
   totals: { impressions: number; clicks: number; orders: number; revenue: number };
+  daily: Array<{ date: string; impressions: number; clicks: number; orders: number }>;
   by_feature?: Array<{
     type: string;
     name: string | null;
@@ -139,6 +145,21 @@ export type AnalyticsData = {
     orders: number;
     revenue: number;
   }>;
+};
+
+export type TrafficData = {
+  range_days: number;
+  sessions: number;
+  page_views: number;
+  top_pages: Array<{ path: string; views: number }>;
+  top_products: Array<{ product_id: string; title: string; views: number }>;
+  device_split: { mobile: number; desktop: number } | null;
+  funnel: {
+    product_viewed: number;
+    product_added_to_cart: number;
+    checkout_started: number;
+    checkout_completed: number;
+  };
 };
 
 export type ScoreHistoryPoint = { id: number; score_total: number; finished_at: string };

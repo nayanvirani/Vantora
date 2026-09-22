@@ -2,32 +2,65 @@
   F-13 Trust Badges (app block). Merchant adds this block to the product
   or cart section via the theme editor.
 
-  Layout + labels resolve from the `vantora` shop metafield first (written
-  when the merchant saves this tool in the admin GUI), falling back to
-  this block's Theme Editor settings if that metafield doesn't exist yet
-  -- see sticky-add-to-cart.liquid for why this is whole-object, not
-  merged field-by-field. Icons are the one exception: the admin GUI has no
-  image upload yet, so icons always come from the Theme Editor's own
-  image_picker settings regardless of sync state, rather than silently
-  disappearing the moment a merchant saves labels through the app.
+  Settings resolve in order: a product-specific `vantora` metafield (a
+  merchant targeted this to specific products in the admin GUI), then the
+  shop-wide `vantora` metafield (untargeted / everywhere), then this
+  block's Theme Editor settings -- whole-object, not merged field-by-field
+  (see sticky-add-to-cart.liquid for why). Icons work differently
+  depending on which source won: the admin GUI has no image upload yet, so
+  it saves a built-in icon library key (a plain string rendered as an
+  inline SVG below); the Theme Editor's own settings still use its native
+  image_picker, rendered as an <img> -- these never mix within one badge
+  since the whole source switches together, not field by field.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.trust_badges.value %}
+{% if product %}
+  {% assign product_v = product.metafields.vantora.trust_badges.value %}
+  {% if product_v %}
+    {% assign v = product_v %}
+  {% endif %}
+{% endif %}
 {% assign layout = v.layout | default: block.settings.layout %}
 
 <div class="vantora-trust-badges vantora-trust-badges--{{ layout }}" {{ block.shopify_attributes }}>
   {% for i in (1..6) %}
     {% assign icon_key = 'badge_' | append: i | append: '_icon' %}
     {% assign label_key = 'badge_' | append: i | append: '_label' %}
-    {% assign icon = block.settings[icon_key] %}
     {% if v %}
       {% assign label = v[label_key] %}
+      {% assign icon_name = v[icon_key] %}
+      {% assign icon_image = nil %}
     {% else %}
       {% assign label = block.settings[label_key] %}
+      {% assign icon_name = nil %}
+      {% assign icon_image = block.settings[icon_key] %}
     {% endif %}
+
     {% if label != blank %}
       <div class="vantora-trust-badges__item">
-        {% if icon %}
-          <img src="{{ icon | image_url: width: 48 }}" alt="" width="24" height="24" loading="lazy">
+        {% if icon_image %}
+          <img src="{{ icon_image | image_url: width: 48 }}" alt="" width="24" height="24" loading="lazy">
+        {% elsif icon_name != blank %}
+          <span class="vantora-trust-badges__icon" aria-hidden="true">
+            {% case icon_name %}
+              {% when 'shield' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 20 6 V12 C20 17 16.5 20.5 12 22 C7.5 20.5 4 17 4 12 V6 Z"/></svg>
+              {% when 'lock' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11 V7 a4 4 0 0 1 8 0 v4"/></svg>
+              {% when 'truck' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="14" height="10"/><path d="M15 10h4l3 3v3h-7z"/><circle cx="6" cy="19" r="1.6"/><circle cx="18" cy="19" r="1.6"/></svg>
+              {% when 'refresh' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+              {% when 'check' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              {% when 'star' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 9 22 9.5 17 14.5 18.5 21.5 12 17.8 5.5 21.5 7 14.5 2 9.5 9 9 Z"/></svg>
+              {% when 'card' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              {% when 'support' %}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2" y="13" width="4" height="7" rx="1.5"/><rect x="18" y="13" width="4" height="7" rx="1.5"/></svg>
+            {% endcase %}
+          </span>
         {% endif %}
         <span>{{ label }}</span>
       </div>
@@ -39,6 +72,7 @@
   .vantora-trust-badges { display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 0; }
   .vantora-trust-badges--stacked { flex-direction: column; }
   .vantora-trust-badges__item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .vantora-trust-badges__icon { display: inline-flex; flex-shrink: 0; }
 </style>
 
 <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>

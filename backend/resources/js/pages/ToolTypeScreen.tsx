@@ -16,7 +16,9 @@ const STATUS_TONE: Record<string, 'success' | 'info' | undefined> = {
 // Kept in sync with FeatureConfigController::SINGLETON_TYPES: these render
 // as one shop-wide widget (one shop metafield slot), so a second config has
 // nowhere to apply -- skip the list screen and edit the one config directly.
-const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'trust_badges', 'faq', 'goal_tracker', 'cart_upsell'];
+// trust_badges/faq support per-product targeting instead, so they keep the
+// list screen (multiple configs: one sitewide default plus targeted ones).
+const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'goal_tracker', 'cart_upsell'];
 
 function defaultsFor(type: string): Record<string, unknown> {
   const values: Record<string, unknown> = {};

@@ -39,6 +39,15 @@ class ThemeSettingsSyncService
         'cart_upsell' => 'cart_upsell',
     ];
 
+    /**
+     * Types whose Liquid block also checks a *product*-level metafield
+     * before the shop-level one (spec F-13/F-14: "product/collection
+     * targeting") -- a config with settings.target_product_ids writes to
+     * each of those products instead of the shop, so it only applies
+     * there; a config with no targeting still writes shop-wide as before.
+     */
+    protected const PRODUCT_TARGETABLE_TYPES = ['trust_badges', 'faq'];
+
     public function syncs(string $type): bool
     {
         return isset(self::METAFIELD_KEYS[$type]);
@@ -53,6 +62,27 @@ class ThemeSettingsSyncService
         }
 
         $client = new ShopifyApiClient($shop);
+        $productIds = $this->targetProductIds($config);
+
+        if ($productIds) {
+            $client->graphql(<<<'GQL'
+                mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+                    metafieldsSet(metafields: $metafields) {
+                        userErrors { field message }
+                    }
+                }
+                GQL, [
+                'metafields' => collect($productIds)->map(fn ($productId) => [
+                    'ownerId' => $productId,
+                    'namespace' => 'vantora',
+                    'key' => $key,
+                    'type' => 'json',
+                    'value' => json_encode($config->settings),
+                ])->all(),
+            ]);
+
+            return;
+        }
 
         $shopId = $client->graphql('query { shop { id } }')->json('data.shop.id');
 
@@ -82,6 +112,26 @@ class ThemeSettingsSyncService
         }
 
         $client = new ShopifyApiClient($shop);
+        $productIds = $this->targetProductIds($config);
+
+        if ($productIds) {
+            $client->graphql(<<<'GQL'
+                mutation metafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
+                    metafieldsDelete(metafields: $metafields) {
+                        userErrors { field message }
+                    }
+                }
+                GQL, [
+                'metafields' => collect($productIds)->map(fn ($productId) => [
+                    'ownerId' => $productId,
+                    'namespace' => 'vantora',
+                    'key' => $key,
+                ])->all(),
+            ]);
+
+            return;
+        }
+
         $shopId = $client->graphql('query { shop { id } }')->json('data.shop.id');
 
         $client->graphql(<<<'GQL'
@@ -97,5 +147,14 @@ class ThemeSettingsSyncService
                 'key' => $key,
             ]],
         ]);
+    }
+
+    protected function targetProductIds(FeatureConfig $config): array
+    {
+        if (! in_array($config->type, self::PRODUCT_TARGETABLE_TYPES, true)) {
+            return [];
+        }
+
+        return array_values(array_filter($config->settings['target_product_ids'] ?? []));
     }
 }

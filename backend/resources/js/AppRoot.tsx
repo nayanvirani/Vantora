@@ -68,6 +68,15 @@ export default function App() {
     load();
   }, []);
 
+  // Polaris's own active-item matching only compares against `location`
+  // (pathname, no query string), so every sub-item under the same section
+  // path (e.g. /storefront?type=faq vs ?type=sticky_atc) looked equally
+  // "current" and it picked whichever happened to match first -- a
+  // merchant landed on Product FAQ and saw Free Shipping Bar highlighted
+  // instead. `matches` on each sub-item overrides that with an exact
+  // full-path (pathname + query) comparison.
+  const currentFullPath = pathname + window.location.search;
+
   const nav = (
     <Navigation location={pathname}>
       <Navigation.Section
@@ -77,10 +86,10 @@ export default function App() {
           icon: section.icon,
           exactMatch: section.path === '/',
           subNavigationItems: section.category
-            ? FEATURE_TYPES.filter((f) => f.category === section.category).map((f) => ({
-                url: `${section.path}?type=${f.type}`,
-                label: f.label,
-              }))
+            ? FEATURE_TYPES.filter((f) => f.category === section.category).map((f) => {
+                const url = `${section.path}?type=${f.type}`;
+                return { url, label: f.label, matches: url === currentFullPath };
+              })
             : undefined,
         }))}
       />

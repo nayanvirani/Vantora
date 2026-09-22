@@ -20,7 +20,10 @@ Route::middleware('shopify.session')->group(function () {
     Route::middleware('active_subscription')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'show']);
 
+        Route::get('/billing/usage', [BillingController::class, 'usage']);
+
         Route::get('/analytics', [AnalyticsController::class, 'index']);
+        Route::get('/analytics/traffic', [AnalyticsController::class, 'traffic']);
         Route::get('/analytics/score-history', [AnalyticsController::class, 'scoreHistory']);
 
         Route::post('/audits', [AuditController::class, 'store']);

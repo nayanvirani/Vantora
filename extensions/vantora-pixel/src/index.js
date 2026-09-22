@@ -53,11 +53,16 @@ register(({ analytics, init }) => {
 
   analytics.subscribe("page_viewed", (event) => {
     const doc = event.context?.document;
+    const win = event.context?.window;
     report("page_viewed", event, {
       url: doc?.location?.href,
       path: doc?.location?.pathname,
       title: doc?.title,
       referrer: doc?.referrer,
+      // Device split (mobile vs desktop), same breakpoint the theme
+      // blocks' own CSS uses (max-width: 749px) -- no separate device
+      // API in this sandbox, so viewport width is the proxy.
+      viewport_width: win?.innerWidth ?? null,
     });
   });
 
