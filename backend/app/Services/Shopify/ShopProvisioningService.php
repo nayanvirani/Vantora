@@ -77,4 +77,52 @@ class ShopProvisioningService
             }
         }
     }
+
+    /**
+     * Deploying extensions/vantora-pixel doesn't make it collect anything --
+     * a Web Pixel extension only starts running once a WebPixel record
+     * exists for the shop (webPixelCreate), which is what makes it show up
+     * under Settings > Customer events > Pixels; a merchant found it
+     * missing there and reported it. `accountID` is a required field on
+     * the extension's settings schema but unused by src/index.js (it
+     * reads the shop domain from the pixel's own init data instead), so
+     * any non-empty value satisfies validation.
+     */
+    public function connectWebPixel(Shop $shop): void
+    {
+        try {
+            $client = new ShopifyApiClient($shop);
+
+            // Check first rather than trying to create and treating a
+            // "duplicate" userError as success -- the exact error code
+            // webPixelCreate returns when one already exists isn't
+            // documented, so this avoids relying on a guessed string.
+            $existing = $client->graphql('query { webPixel { id } }')->json('data.webPixel.id');
+
+            if ($existing) {
+                return;
+            }
+
+            $result = $client->graphql(<<<'GQL'
+                mutation webPixelCreate($webPixel: WebPixelInput!) {
+                    webPixelCreate(webPixel: $webPixel) {
+                        webPixel { id }
+                        userErrors { field message code }
+                    }
+                }
+                GQL, [
+                'webPixel' => [
+                    'settings' => json_encode(['accountID' => $shop->domain]),
+                ],
+            ]);
+
+            $errors = $result->json('data.webPixelCreate.userErrors') ?? [];
+
+            if ($errors) {
+                Log::warning('Failed to connect web pixel', ['shop' => $shop->domain, 'errors' => $errors]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to connect web pixel', ['shop' => $shop->domain, 'error' => $e->getMessage()]);
+        }
+    }
 }

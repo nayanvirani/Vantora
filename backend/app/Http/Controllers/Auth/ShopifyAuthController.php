@@ -82,6 +82,7 @@ class ShopifyAuthController extends Controller
 
         $this->provisioning->syncShopDetails($record);
         $this->provisioning->registerWebhooks($record);
+        $this->provisioning->connectWebPixel($record);
 
         session()->forget(['shopify_oauth_state', 'shopify_oauth_shop']);
 

@@ -93,6 +93,7 @@ class VerifyShopifySessionToken
 
         $this->provisioning->registerWebhooks($shop);
         $this->provisioning->syncShopDetails($shop);
+        $this->provisioning->connectWebPixel($shop);
 
         return $shop;
     }
