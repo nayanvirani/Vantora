@@ -26,7 +26,16 @@ class ShopifyApiClient
             ->baseUrl("https://{$this->shop->domain}/admin/api/{$version}")
             ->post('/graphql.json', [
                 'query' => $query,
-                'variables' => $variables,
+                // json_encode([]) produces `[]`, which Shopify's GraphQL
+                // endpoint rejects outright ("Invalid variables parameter")
+                // -- it requires an object. Every call site that omits
+                // variables (the majority) was silently failing on this,
+                // caught by each caller's own try/catch and logged as a
+                // generic sync failure, which is why so many different
+                // features were failing to save at once. Casting an empty
+                // array to an object makes it encode as `{}`; non-empty
+                // associative arrays are unaffected.
+                'variables' => $variables ?: (object) [],
             ])
             ->throw();
     }
