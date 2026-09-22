@@ -90,4 +90,34 @@ class ShopifyAuthService
     {
         return Str::random(40);
     }
+
+    /**
+     * Token Exchange: trades the App Bridge / extension session token (a
+     * short-lived ID token) for a real offline Admin API access token,
+     * with no redirect or iframe navigation. This is what Shopify's
+     * "managed installation" (the default when shopify.app.toml has no
+     * use_legacy_install_flow = true) expects the app to do on first
+     * contact with a shop -- Shopify grants scopes and embeds the app
+     * before this app ever sees a request, so there's no authorization
+     * code to exchange, only this session token.
+     *
+     * `expiring: 1` matches exchangeCodeForToken()'s expiring-token
+     * requirement -- see that method's docblock.
+     *
+     * @return array{access_token: string, refresh_token: string, expires_in: int, refresh_token_expires_in: int, scope: string}
+     */
+    public function exchangeSessionTokenForOfflineToken(string $shop, string $sessionToken): array
+    {
+        $response = Http::asJson()->post("https://{$shop}/admin/oauth/access_token", [
+            'client_id' => config('shopify.api_key'),
+            'client_secret' => config('shopify.api_secret'),
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:token-exchange',
+            'subject_token' => $sessionToken,
+            'subject_token_type' => 'urn:ietf:params:oauth:token-type:id_token',
+            'requested_token_type' => 'urn:shopify:params:oauth:token-type:offline-access-token',
+            'expiring' => 1,
+        ])->throw();
+
+        return $response->json();
+    }
 }

@@ -24,7 +24,12 @@ class RunWeeklyMonitoring extends Command
 
     public function handle(AuditEngine $engine): int
     {
-        $shops = Shop::query()->whereNull('uninstalled_at')->get();
+        // No free plan: a shop with no active subscription gets nothing,
+        // including background monitoring it was never paying for.
+        $shops = Shop::query()
+            ->whereNull('uninstalled_at')
+            ->whereHas('subscriptions', fn ($q) => $q->where('status', 'active'))
+            ->get();
 
         $this->info("Monitoring {$shops->count()} shop(s).");
 

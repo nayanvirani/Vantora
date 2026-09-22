@@ -5,24 +5,30 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Shopify\BillingService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 
+/**
+ * Billing is Shopify Managed Pricing -- see BillingService. This app never
+ * creates a subscription itself; it only tells the embedded frontend
+ * whether the paywall should show, and gives it the link to Shopify's own
+ * hosted plan page when it does.
+ */
 class BillingController extends Controller
 {
-    public function subscribe(Request $request, BillingService $billing)
+    public function status(Request $request, BillingService $billing): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
-
-        $data = $request->validate([
-            'plan' => ['required', Rule::in(['starter', 'pro'])],
-        ]);
-
-        $returnUrl = config('app.url') . "/?shop={$shop->domain}&billing=confirmed";
-
-        $result = $billing->startSubscription($shop, $data['plan'], $returnUrl);
+        $shop = $this->shop($request);
+        $subscription = $shop->activeSubscription;
 
         return response()->json([
-            'confirmation_url' => $result['confirmationUrl'] ?? null,
+            'active' => (bool) $subscription,
+            'plan' => $subscription?->plan,
+            'manage_plan_url' => $billing->managePlanUrl($shop),
         ]);
+    }
+
+    protected function shop(Request $request)
+    {
+        return $request->attributes->get('shop');
     }
 }

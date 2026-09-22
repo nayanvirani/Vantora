@@ -13,18 +13,30 @@ return [
     'scopes' => env('SHOPIFY_APP_SCOPES', 'read_products'),
     'webhook_path' => env('SHOPIFY_WEBHOOK_PATH', '/webhooks/shopify'),
 
+    // The app's handle in Shopify's own URLs, e.g.
+    // admin.shopify.com/store/{shop}/apps/{app_handle} -- needed to build
+    // the link to Shopify's own hosted Managed Pricing plan-selection page.
+    // Visible in the Partner Dashboard / any admin.shopify.com/.../apps/...
+    // URL for this app; Shopify may suffix it (e.g. "vantora-1") if the
+    // bare name collided with an existing app.
+    'app_handle' => env('SHOPIFY_APP_HANDLE', 'vantora-1'),
+
+    // Billing is Shopify Managed Pricing: plan names, prices and trial
+    // lengths are configured in the Partner Dashboard, not here -- this app
+    // never calls appSubscriptionCreate. 'name' below must match the plan
+    // name exactly as typed into the Partner Dashboard (case-insensitively),
+    // since that's the only string the app_subscriptions/update webhook
+    // gives it to identify which local plan a subscription is for.
     'plans' => [
         'starter' => [
             'name' => 'Starter',
             'price' => 19.99,
             'per_feature_limit' => 1,
-            'trial_days' => 7,
         ],
         'pro' => [
             'name' => 'Pro',
             'price' => 49.99,
             'per_feature_limit' => null, // unlimited
-            'trial_days' => 14,
         ],
     ],
 
@@ -54,18 +66,4 @@ return [
     ],
 
     'ai_fair_use_cap_per_month' => 100,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Billing
-    |--------------------------------------------------------------------------
-    |
-    | Whether appSubscriptionCreate charges are marked `test: true`. This is
-    | about the SHOPIFY STORE being charged, not this app's own environment:
-    | a development store silently refuses non-test charges regardless of
-    | APP_ENV here, so this must default to true and only flip to false once
-    | the app is actually installed on real merchant stores.
-    |
-    */
-    'billing_test_mode' => (bool) env('SHOPIFY_BILLING_TEST_MODE', true),
 ];

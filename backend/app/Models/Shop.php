@@ -58,9 +58,26 @@ class Shop extends Model
         return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
+    /**
+     * The subscription that actually gates access -- unlike subscription()
+     * (most recently created row, regardless of status), this only matches
+     * a row Shopify has confirmed is 'active'. A shop mid plan-switch, or
+     * whose only subscription was cancelled, correctly has none here even
+     * though subscription() would still return the latest (non-active) row.
+     */
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)->where('status', 'active')->latestOfMany();
+    }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return (bool) $this->activeSubscription;
     }
 
     public function audits(): HasMany
@@ -98,10 +115,16 @@ class Shop extends Model
         return (bool) $this->subscription?->trial_ends_at?->isFuture();
     }
 
+    /**
+     * 'starter' is a conservative (least-privilege) fallback for the rare
+     * code path that runs outside an HTTP request the paywall middleware
+     * could gate (queued jobs, the weekly monitoring cron) -- it is NOT a
+     * free tier. Every user-facing route that matters is wrapped in
+     * 'active_subscription' (see routes/api.php), which blocks a shop with
+     * no activeSubscription before this method is ever reached.
+     */
     public function currentPlan(): string
     {
-        return $this->subscription?->status === 'active'
-            ? $this->subscription->plan
-            : 'starter';
+        return $this->activeSubscription?->plan ?? 'starter';
     }
 }

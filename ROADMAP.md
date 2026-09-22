@@ -22,6 +22,53 @@ real checkout and click through the flow — but that's a testing gap, not a
 permissions gap, and the next step is straightforwardly to connect a dev store and
 try them rather than waiting on anything further from Shopify.
 
+## Live install bug fix + billing rebuilt on Shopify Managed Pricing
+
+A real merchant install (`speedpilot-dev.myshopify.com`) surfaced the embedded app
+showing "Failed to load your store: Unknown or uninstalled shop." — confirming a gap
+flagged but not yet fixed in the reference-app review below: `shopify.app.toml` has
+no `use_legacy_install_flow = true`, so Shopify's default "managed installation"
+grants scopes and embeds the app itself, **never calling `/auth/callback`**. The
+classic OAuth flow this app relied on for provisioning a `Shop` row simply never ran.
+
+Fixed: `VerifyShopifySessionToken` now performs **Token Exchange** itself the first
+time it sees a session token for a shop it doesn't have a valid token for --
+`ShopifyAuthService::exchangeSessionTokenForOfflineToken()` (request shape verified
+against shopify.dev directly), sharing the same webhook-registration/shop-detail-sync
+logic (`ShopProvisioningService`) the classic `/auth/callback` path uses, extracted
+so the two provisioning paths can't drift apart. `/auth` + `/auth/callback` are kept
+as a fallback/manual-install path, not removed.
+
+Also, per direction: billing rebuilt on **Shopify Managed Pricing**, matching the
+reference app exactly rather than the self-managed `appSubscriptionCreate` flow from
+before -- the user is creating "Starter" and "Pro" plans directly in the Partner
+Dashboard, and this app now never calls the Billing API itself. `BillingService`
+only builds the link to Shopify's hosted plan page (`managePlanUrl()`) and syncs
+whatever the `app_subscriptions/update` webhook reports (`resolvePlanKey()` matches
+the webhook's free-text plan `name` against `config('shopify.plans.*.name')`
+case-insensitively). `POST /api/billing/subscribe` is gone; `GET /api/billing/status`
+replaces it.
+
+**Hard paywall added**, matching the reference app's `active_subscription` gate: a
+shop with no `Subscription` row in `status = 'active'` can now reach only `/api/shop`
+and `/api/billing/status` -- every other API route (dashboard, feature-configs,
+recipes, analytics, ai) is wrapped in a new `active_subscription` middleware
+(`EnsureActiveSubscription`) in `routes/api.php`. Previously `Shop::currentPlan()`
+defaulted an unsubscribed shop to `'starter'` and nothing blocked API access at
+all -- there was no real paywall, just a frontend redirect a merchant could
+route around by hitting the API directly. Also added `Shop::activeSubscription()`
+(filters on `status = 'active'`, unlike `subscription()`'s "most recently created
+row regardless of status") and scoped the weekly-monitoring cron to only
+actively-subscribed shops, for the same "nothing without a subscription" reason.
+
+Frontend: `Plans.tsx` is now an in-app preview only, every button opens Shopify's
+hosted pricing page (`window.open(managePlanUrl, '_top')`); `Settings.tsx`'s
+plan-switch buttons became a single "Manage plan" link there too.
+
+**Deployed and live** (Railway), fixing the reported install bug going forward for
+any shop hitting the embedded app after this ships. Not yet re-tested against the
+specific store from the bug report at time of writing.
+
 ## Cross-cutting fixes from reviewing another Shopify/Laravel app's billing + checkout code
 
 Compared Vantora's billing and checkout-extension code against a separate, more
@@ -41,9 +88,11 @@ real issues:
    token expired, silently, some time after install.
 2. **Billing had `test: false` hardcoded** in the `appSubscriptionCreate` mutation.
    Development stores (the only kind installed so far) silently refuse non-test
-   charges, so billing likely couldn't have been tested at all as it stood. Fixed:
-   `config('shopify.billing_test_mode')`, defaulting true, wired as a GraphQL
-   variable instead of a literal.
+   charges, so billing likely couldn't have been tested at all as it stood. Moot now
+   -- billing was rebuilt on Shopify Managed Pricing shortly after (see the section
+   above), which doesn't call `appSubscriptionCreate` at all, but worth recording:
+   the same "dev stores refuse non-test charges" fact applies to *any* future
+   self-managed billing code in any Shopify app, not just this one.
 3. **`thank-you-blocks` and `post-purchase-upsell` backend endpoints were fully
    public**, trusting a client-supplied `shop` field with no verification. Checked
    whether either extension surface actually has a way to authenticate itself:

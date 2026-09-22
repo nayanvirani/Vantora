@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\VerifyShopifyAppProxySignature;
 use App\Http\Middleware\VerifyShopifyExtensionSessionToken;
 use App\Http\Middleware\VerifyShopifySessionToken;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'shopify.session' => VerifyShopifySessionToken::class,
             'shopify.proxy' => VerifyShopifyAppProxySignature::class,
             'shopify.extension_session' => VerifyShopifyExtensionSessionToken::class,
+            'active_subscription' => EnsureActiveSubscription::class,
         ]);
 
         $middleware->trustProxies(at: '*');

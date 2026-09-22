@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Frame, Spinner, Box, Tabs } from '@shopify/polaris';
-import { api, type Shop } from './lib/api';
+import { api, type BillingStatus, type Shop } from './lib/api';
 import Plans from './pages/Plans';
 import Dashboard from './pages/Dashboard';
 import Tools from './pages/Tools';
@@ -20,21 +20,24 @@ const TABS = [
 
 export default function App() {
   const [shop, setShop] = useState<Shop | null>(null);
+  const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState(0);
 
-  const loadShop = () => {
+  const load = () => {
     setLoading(true);
-    api
-      .get<Shop>('/api/shop')
-      .then(setShop)
+    Promise.all([api.get<Shop>('/api/shop'), api.get<BillingStatus>('/api/billing/status')])
+      .then(([shopData, billingData]) => {
+        setShop(shopData);
+        setBilling(billingData);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    loadShop();
+    load();
   }, []);
 
   if (loading) {
@@ -47,7 +50,7 @@ export default function App() {
     );
   }
 
-  if (error || !shop) {
+  if (error || !shop || !billing) {
     return (
       <Frame>
         <Box padding="800">Failed to load your store: {error ?? 'unknown error'}</Box>
@@ -55,12 +58,10 @@ export default function App() {
     );
   }
 
-  const isActive = shop.subscription?.status === 'active' || shop.on_trial;
-
-  if (!isActive) {
+  if (!billing.active) {
     return (
       <Frame>
-        <Plans onSubscribed={loadShop} />
+        <Plans managePlanUrl={billing.manage_plan_url} onRecheck={load} />
       </Frame>
     );
   }
@@ -71,7 +72,7 @@ export default function App() {
     <Recipes key="recipes" />,
     <Analytics key="analytics" shop={shop} />,
     <AiOptimizer key="ai" />,
-    <Settings key="settings" shop={shop} />,
+    <Settings key="settings" shop={shop} billing={billing} />,
   ][tab];
 
   return (

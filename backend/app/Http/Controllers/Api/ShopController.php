@@ -17,8 +17,6 @@ class ShopController extends Controller
             'shopify_plan' => $shop->shopify_plan,
             'is_plus' => $shop->is_plus,
             'plan' => $shop->currentPlan(),
-            'on_trial' => $shop->isOnTrial(),
-            'subscription' => $shop->subscription,
         ]);
     }
 }

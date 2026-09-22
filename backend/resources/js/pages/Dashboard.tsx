@@ -64,7 +64,7 @@ export default function Dashboard({ shop }: { shop: Shop }) {
   return (
     <Page
       title={`Welcome back, ${shop.domain}`}
-      subtitle={`${shop.plan === 'pro' ? 'Pro' : 'Starter'} plan${shop.on_trial ? ' · trial' : ''}`}
+      subtitle={`${shop.plan === 'pro' ? 'Pro' : 'Starter'} plan`}
       primaryAction={{ content: 'Run new audit', loading: runningAudit, onAction: runAudit }}
     >
       <Layout>

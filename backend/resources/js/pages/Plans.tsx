@@ -1,6 +1,4 @@
-import { useState } from 'react';
-import { Page, Layout, Card, Text, Button, BlockStack, Badge, InlineGrid } from '@shopify/polaris';
-import { api } from '../lib/api';
+import { Page, Layout, Card, Text, Button, BlockStack, Badge, InlineGrid, InlineStack } from '@shopify/polaris';
 
 const PLANS = [
   {
@@ -28,41 +26,19 @@ const PLANS = [
   },
 ];
 
-export default function Plans({ onSubscribed }: { onSubscribed: () => void }) {
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const subscribe = async (plan: string) => {
-    setLoadingPlan(plan);
-    setError(null);
-    try {
-      const { confirmation_url } = await api.post<{ confirmation_url: string | null }>(
-        '/api/billing/subscribe',
-        { plan },
-      );
-      if (confirmation_url) {
-        window.open(confirmation_url, '_top');
-      } else {
-        onSubscribed();
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
+/**
+ * Billing is Shopify Managed Pricing: the actual plan picker lives on
+ * Shopify's own hosted page (managePlanUrl) -- these cards are a
+ * consistent in-app preview only, every button opens the same hosted page
+ * where the merchant picks between them.
+ */
+export default function Plans({ managePlanUrl, onRecheck }: { managePlanUrl: string; onRecheck: () => void }) {
+  const openPricingPage = () => window.open(managePlanUrl, '_top');
 
   return (
     <Page title="Choose your plan" subtitle="Find what's hurting your sales. Fix it in one click.">
       <Layout>
         <Layout.Section>
-          {error && (
-            <Card>
-              <Text as="p" tone="critical">
-                {error}
-              </Text>
-            </Card>
-          )}
           <InlineGrid columns={2} gap="400">
             {PLANS.map((plan) => (
               <Card key={plan.key}>
@@ -82,17 +58,18 @@ export default function Plans({ onSubscribed }: { onSubscribed: () => void }) {
                       </Text>
                     ))}
                   </BlockStack>
-                  <Button
-                    variant={plan.highlight ? 'primary' : 'secondary'}
-                    loading={loadingPlan === plan.key}
-                    onClick={() => subscribe(plan.key)}
-                  >
-                    Start free trial
+                  <Button variant={plan.highlight ? 'primary' : 'secondary'} onClick={openPricingPage}>
+                    Choose {plan.name}
                   </Button>
                 </BlockStack>
               </Card>
             ))}
           </InlineGrid>
+          <InlineStack align="center">
+            <Button variant="plain" onClick={onRecheck}>
+              I've already picked a plan — refresh
+            </Button>
+          </InlineStack>
         </Layout.Section>
       </Layout>
     </Page>

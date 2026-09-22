@@ -1,27 +1,7 @@
-import { useState } from 'react';
 import { Page, Layout, Card, Text, Button, BlockStack, InlineStack, Badge } from '@shopify/polaris';
-import { api, type Shop } from '../lib/api';
+import type { BillingStatus, Shop } from '../lib/api';
 
-export default function Settings({ shop }: { shop: Shop }) {
-  const [switching, setSwitching] = useState(false);
-
-  const switchPlan = async (plan: 'starter' | 'pro') => {
-    setSwitching(true);
-    try {
-      const { confirmation_url } = await api.post<{ confirmation_url: string | null }>(
-        '/api/billing/subscribe',
-        { plan },
-      );
-      if (confirmation_url) {
-        window.open(confirmation_url, '_top');
-      }
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setSwitching(false);
-    }
-  };
-
+export default function Settings({ shop, billing }: { shop: Shop; billing: BillingStatus }) {
   return (
     <Page title="Settings">
       <Layout>
@@ -35,24 +15,13 @@ export default function Settings({ shop }: { shop: Shop }) {
                 <Badge tone={shop.plan === 'pro' ? 'success' : undefined}>
                   {shop.plan === 'pro' ? 'Pro' : 'Starter'}
                 </Badge>
-                {shop.on_trial && <Badge tone="info">Trial</Badge>}
               </InlineStack>
-              {shop.subscription?.trial_ends_at && (
-                <Text as="p" tone="subdued">
-                  Trial ends {new Date(shop.subscription.trial_ends_at).toLocaleDateString()}
-                </Text>
-              )}
-              <InlineStack gap="200">
-                <Button
-                  variant="primary"
-                  loading={switching}
-                  disabled={shop.plan === 'pro'}
-                  onClick={() => switchPlan('pro')}
-                >
-                  Upgrade to Pro
-                </Button>
-                <Button loading={switching} disabled={shop.plan === 'starter'} onClick={() => switchPlan('starter')}>
-                  Switch to Starter
+              <Text as="p" tone="subdued">
+                Managed by Shopify — change or cancel your plan on Shopify's own billing page.
+              </Text>
+              <InlineStack>
+                <Button variant="primary" onClick={() => window.open(billing.manage_plan_url, '_top')}>
+                  Manage plan
                 </Button>
               </InlineStack>
             </BlockStack>

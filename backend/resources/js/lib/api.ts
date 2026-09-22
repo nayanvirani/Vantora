@@ -55,8 +55,12 @@ export type Shop = {
   shopify_plan: string | null;
   is_plus: boolean;
   plan: 'starter' | 'pro';
-  on_trial: boolean;
-  subscription: { status: string; plan: string; trial_ends_at: string | null } | null;
+};
+
+export type BillingStatus = {
+  active: boolean;
+  plan: 'starter' | 'pro' | null;
+  manage_plan_url: string;
 };
 
 export type AuditIssue = {

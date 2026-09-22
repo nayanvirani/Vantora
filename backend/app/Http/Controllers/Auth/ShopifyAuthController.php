@@ -4,14 +4,21 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shop;
-use App\Services\Shopify\ShopifyApiClient;
+use App\Services\Shopify\ShopProvisioningService;
 use App\Services\Shopify\ShopifyAuthService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
+/**
+ * Classic OAuth install/callback. Kept as a fallback/manual-install path --
+ * shopify.app.toml has no use_legacy_install_flow = true, so Shopify's
+ * current default ("managed installation") grants scopes and embeds the app
+ * without ever calling /auth/callback in the normal case. The primary
+ * provisioning path is Token Exchange in VerifyShopifySessionToken, which
+ * fires on the first authenticated request from an unknown shop instead.
+ */
 class ShopifyAuthController extends Controller
 {
-    public function __construct(protected ShopifyAuthService $auth)
+    public function __construct(protected ShopifyAuthService $auth, protected ShopProvisioningService $provisioning)
     {
     }
 
@@ -73,73 +80,11 @@ class ShopifyAuthController extends Controller
             ]
         );
 
-        $this->syncShopDetails($record);
-        $this->registerWebhooks($record);
+        $this->provisioning->syncShopDetails($record);
+        $this->provisioning->registerWebhooks($record);
 
         session()->forget(['shopify_oauth_state', 'shopify_oauth_shop']);
 
         return redirect()->to("/?shop={$shop}&host=" . $request->query('host'));
-    }
-
-    protected function syncShopDetails(Shop $shop): void
-    {
-        try {
-            $client = new ShopifyApiClient($shop);
-
-            $data = $client->graphql(<<<'GQL'
-                query {
-                    shop {
-                        email
-                        plan { displayName partnerDevelopment shopifyPlus }
-                    }
-                }
-                GQL)->json('data.shop');
-
-            $shop->update([
-                'email' => $data['email'] ?? null,
-                'shopify_plan' => $data['plan']['displayName'] ?? null,
-                'is_plus' => (bool) ($data['plan']['shopifyPlus'] ?? false),
-            ]);
-        } catch (\Throwable $e) {
-            Log::warning('Failed to sync shop details', ['shop' => $shop->domain, 'error' => $e->getMessage()]);
-        }
-    }
-
-    protected function registerWebhooks(Shop $shop): void
-    {
-        $topics = [
-            'APP_UNINSTALLED' => '/webhooks/shopify/app-uninstalled',
-            'APP_SUBSCRIPTIONS_UPDATE' => '/webhooks/shopify/app-subscriptions-update',
-            'SHOP_UPDATE' => '/webhooks/shopify/shop-update',
-            'THEMES_PUBLISH' => '/webhooks/shopify/themes-publish',
-            'THEMES_UPDATE' => '/webhooks/shopify/themes-update',
-            'PRODUCTS_UPDATE' => '/webhooks/shopify/products-update',
-            'PRODUCTS_DELETE' => '/webhooks/shopify/products-delete',
-            'ORDERS_CREATE' => '/webhooks/shopify/orders-create',
-        ];
-
-        $client = new ShopifyApiClient($shop);
-        $callbackBase = rtrim(config('app.url'), '/');
-
-        foreach ($topics as $topic => $path) {
-            try {
-                $client->graphql(<<<'GQL'
-                    mutation webhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
-                        webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
-                            webhookSubscription { id }
-                            userErrors { field message }
-                        }
-                    }
-                    GQL, [
-                    'topic' => $topic,
-                    'webhookSubscription' => [
-                        'callbackUrl' => $callbackBase . $path,
-                        'format' => 'JSON',
-                    ],
-                ]);
-            } catch (\Throwable $e) {
-                Log::warning('Failed to register webhook', ['topic' => $topic, 'error' => $e->getMessage()]);
-            }
-        }
     }
 }
