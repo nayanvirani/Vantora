@@ -12,10 +12,11 @@ class Event extends Model
 
     public $timestamps = true;
 
-    protected $fillable = ['shop_id', 'config_id', 'type', 'session_ref', 'occurred_at'];
+    protected $fillable = ['shop_id', 'config_id', 'type', 'session_ref', 'occurred_at', 'data'];
 
     protected $casts = [
         'occurred_at' => 'datetime',
+        'data' => 'array',
     ];
 
     public function shop(): BelongsTo

@@ -59,6 +59,7 @@ class PixelEventController extends Controller
             'type' => $data['type'],
             'session_ref' => $data['client_id'] ?? null,
             'occurred_at' => $data['occurred_at'] ?? now(),
+            'data' => $data['data'] ?? null,
         ]);
 
         if ($data['type'] === 'checkout_completed') {

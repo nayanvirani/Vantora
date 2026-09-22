@@ -14,6 +14,21 @@ import { register } from "@shopify/web-pixels-extension";
  * frequently-bought-together.liquid) -- checkout_completed line items carry
  * that property through to checkout (Checkout Extensibility shops only),
  * and the backend reads it there.
+ *
+ * Covers all customer-journey events Shopify's Web Pixels API exposes that
+ * are useful for future campaign targeting (page_viewed, collection_viewed,
+ * search_submitted, product_removed_from_cart, in addition to the checkout
+ * funnel events above) -- everything PixelEventController now persists in
+ * full (events.data), not just counted.
+ *
+ * "Holding time" / time-on-page isn't something this pixel can measure
+ * directly: it runs in Shopify's `strict` sandbox, which has no access to
+ * `document`/`window`/`navigator` (confirmed against the Web Pixels API
+ * docs -- only the `analytics`/`browser`/`init`/`settings` objects passed
+ * into register() are available, no visibilitychange/pagehide/sendBeacon).
+ * The standard way analytics platforms derive it without that access is
+ * from the gap between consecutive events' timestamps within the same
+ * clientId session, which page_viewed's occurred_at now supports server-side.
  */
 register(({ analytics, init }) => {
   const endpoint = "https://vantora-production.up.railway.app/pixel/events";
@@ -36,14 +51,46 @@ register(({ analytics, init }) => {
     }).catch(() => {});
   }
 
+  analytics.subscribe("page_viewed", (event) => {
+    const doc = event.context?.document;
+    report("page_viewed", event, {
+      url: doc?.location?.href,
+      path: doc?.location?.pathname,
+      title: doc?.title,
+      referrer: doc?.referrer,
+    });
+  });
+
+  analytics.subscribe("collection_viewed", (event) => {
+    report("collection_viewed", event, {
+      collection_id: event.data?.collection?.id,
+      collection_title: event.data?.collection?.title,
+    });
+  });
+
+  analytics.subscribe("search_submitted", (event) => {
+    report("search_submitted", event, {
+      query: event.data?.searchResult?.query,
+      result_count: event.data?.searchResult?.productVariants?.length ?? null,
+    });
+  });
+
   analytics.subscribe("product_viewed", (event) => {
     report("product_viewed", event, {
       product_id: event.data?.productVariant?.product?.id,
+      product_title: event.data?.productVariant?.product?.title,
     });
   });
 
   analytics.subscribe("product_added_to_cart", (event) => {
     report("product_added_to_cart", event, {
+      product_id: event.data?.cartLine?.merchandise?.product?.id,
+      quantity: event.data?.cartLine?.quantity,
+    });
+  });
+
+  analytics.subscribe("product_removed_from_cart", (event) => {
+    report("product_removed_from_cart", event, {
       product_id: event.data?.cartLine?.merchandise?.product?.id,
       quantity: event.data?.cartLine?.quantity,
     });
