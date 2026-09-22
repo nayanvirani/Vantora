@@ -1,7 +1,20 @@
+export type PickedProduct = {
+  id: string; // gid://shopify/Product/...
+  title: string;
+  images?: Array<{ originalSrc: string }>;
+  variants: Array<{ id: string; title: string; price?: string }>;
+};
+
 declare global {
   interface Window {
     shopify: {
       idToken: () => Promise<string>;
+      resourcePicker: (options: {
+        type: 'product' | 'collection' | 'variant';
+        action?: 'add' | 'select';
+        multiple?: boolean | number;
+        filter?: { variants?: boolean; draft?: boolean; archived?: boolean };
+      }) => Promise<PickedProduct[] | undefined>;
     };
   }
 }

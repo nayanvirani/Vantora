@@ -8,11 +8,12 @@ import {
   BlockStack,
   InlineStack,
   Badge,
-  TextField,
   Banner,
   ProgressBar,
+  Thumbnail,
 } from '@shopify/polaris';
-import { api, type AiJob, type AiUsage } from '../lib/api';
+import { api, type AiJob, type AiUsage, type PickedProduct } from '../lib/api';
+import { pickProduct } from '../lib/resourcePicker';
 
 const STATUS_TONE: Record<string, 'success' | 'critical' | 'info' | undefined> = {
   completed: 'info',
@@ -24,7 +25,8 @@ const STATUS_TONE: Record<string, 'success' | 'critical' | 'info' | undefined> =
 export default function AiOptimizer() {
   const [usage, setUsage] = useState<AiUsage | null>(null);
   const [jobs, setJobs] = useState<AiJob[]>([]);
-  const [productId, setProductId] = useState('');
+  const [selected, setSelected] = useState<PickedProduct | null>(null);
+  const [picking, setPicking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -36,13 +38,23 @@ export default function AiOptimizer() {
 
   useEffect(load, []);
 
+  const choose = async () => {
+    setPicking(true);
+    try {
+      const result = await pickProduct();
+      if (result) setSelected(result[0]);
+    } finally {
+      setPicking(false);
+    }
+  };
+
   const submit = async () => {
-    if (!productId.trim()) return;
+    if (!selected) return;
     setSubmitting(true);
     setError(null);
     try {
-      await api.post('/api/ai/jobs', { product_id: productId.trim() });
-      setProductId('');
+      await api.post('/api/ai/jobs', { product_id: selected.id });
+      setSelected(null);
       setTimeout(load, 3000);
       load();
     } catch (e) {
@@ -96,16 +108,28 @@ export default function AiOptimizer() {
                 </Banner>
               )}
 
-              <InlineStack gap="200" blockAlign="end">
-                <div style={{ flex: 1 }}>
-                  <TextField
-                    label="Product ID (gid://shopify/Product/...)"
-                    autoComplete="off"
-                    value={productId}
-                    onChange={setProductId}
-                  />
-                </div>
-                <Button variant="primary" loading={submitting} onClick={submit}>
+              {selected ? (
+                <InlineStack gap="200" blockAlign="center">
+                  {selected.images?.[0]?.originalSrc && (
+                    <Thumbnail source={selected.images[0].originalSrc} alt={selected.title} size="small" />
+                  )}
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    {selected.title}
+                  </Text>
+                  <Button variant="plain" onClick={choose}>
+                    Change
+                  </Button>
+                </InlineStack>
+              ) : (
+                <InlineStack>
+                  <Button loading={picking} onClick={choose}>
+                    Choose a product
+                  </Button>
+                </InlineStack>
+              )}
+
+              <InlineStack>
+                <Button variant="primary" disabled={!selected} loading={submitting} onClick={submit}>
                   Generate
                 </Button>
               </InlineStack>

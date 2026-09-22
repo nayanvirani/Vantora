@@ -144,10 +144,14 @@ category, with activate/pause/delete and a JSON settings editor (shape hints per
 type, no dedicated form or product picker yet — see below).
 
 Not done / needs a real pass:
-- Product/variant **pickers** — Tools' settings editor is a raw JSON textarea for
-  anything needing a Shopify GID (bundle components, BOGO products, gift variant,
-  cart upsell/FBT picks). Works, but a merchant has to paste GIDs by hand. App
-  Bridge's resource picker (`shopify.resourcePicker()`) is the fix, not yet wired up.
+- Product/variant **pickers** for Tools' settings editor — still a raw JSON textarea
+  for anything needing a Shopify GID (bundle components, BOGO products, gift variant,
+  cart upsell/FBT picks). `lib/resourcePicker.ts` (`pickProduct()`, wrapping App
+  Bridge's `shopify.resourcePicker()`, confirmed against shopify.dev) now exists and
+  is wired into the AI Optimizer's product selection — a merchant flagged that screen
+  specifically as needing a real picker instead of a pasted GID. Extending the same
+  helper into Tools' bundle/BOGO/free-gift/cart-upsell forms is a smaller lift now
+  that it exists, just not done yet.
 - Syncing `feature_configs.settings` into the theme blocks' actual rendered values for
   the Phase 1 tools (Sticky ATC/Shipping Bar/Trust Badges/FAQ only read their own
   theme-editor schema settings today, not what the merchant configured in the admin —
