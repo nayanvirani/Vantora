@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuditController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FeatureConfigController;
+use App\Http\Controllers\Api\ProductLookupController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Api\ShopController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,7 @@ Route::middleware('shopify.session')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'show']);
 
         Route::get('/billing/usage', [BillingController::class, 'usage']);
+        Route::get('/products/lookup', [ProductLookupController::class, 'index']);
 
         Route::get('/analytics', [AnalyticsController::class, 'index']);
         Route::get('/analytics/traffic', [AnalyticsController::class, 'traffic']);

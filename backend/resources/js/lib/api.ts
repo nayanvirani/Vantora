@@ -61,6 +61,8 @@ async function json<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+export type ProductLookupEntry = { title: string | null; image: string | null; price: string | null };
+
 export const api = {
   get: <T>(path: string) => json<T>(path),
   post: <T>(path: string, body?: unknown) =>

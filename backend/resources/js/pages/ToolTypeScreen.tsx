@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Page, Layout, Card, Text, Button, BlockStack, InlineStack, Badge, Banner, TextField, ResourceList, ResourceItem, Box } from '@shopify/polaris';
-import { api, type FeatureConfig } from '../lib/api';
-import { TYPE_SCHEMAS } from '../lib/settingsSchema';
+import { api, type FeatureConfig, type ProductLookupEntry } from '../lib/api';
+import { TYPE_SCHEMAS, collectProductIds } from '../lib/settingsSchema';
 import { featureLabel, featureIcon } from '../lib/featureTypes';
 import SettingsForm from '../components/SettingsForm';
 import ToolPreview from '../components/ToolPreview';
@@ -39,6 +39,7 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lookup, setLookup] = useState<Record<string, ProductLookupEntry>>({});
 
   const schema = TYPE_SCHEMAS[type];
   const label = featureLabel(type);
@@ -84,6 +85,15 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
     const raw = { ...defaultsFor(type), ...config.settings };
     setValues(schema?.fromSettings ? schema.fromSettings(raw) : raw);
     setError(null);
+    setLookup({});
+
+    const ids = collectProductIds(type, config.settings);
+    if (ids.length) {
+      api
+        .get<Record<string, ProductLookupEntry>>(`/api/products/lookup?ids=${ids.join(',')}`)
+        .then(setLookup)
+        .catch(() => {});
+    }
   };
 
   const save = async () => {
@@ -177,6 +187,7 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
                   sections={schema?.sections ?? []}
                   values={values}
                   onChange={(key, v) => setValues((prev) => ({ ...prev, [key]: v }))}
+                  lookup={lookup}
                 />
               </Card>
             </BlockStack>

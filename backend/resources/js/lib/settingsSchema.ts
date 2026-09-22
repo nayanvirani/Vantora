@@ -423,3 +423,36 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
     ],
   },
 };
+
+/**
+ * Every product/variant GID already saved in a config's settings, across
+ * whatever field types its schema declares -- used to hydrate titles on
+ * load (see /api/products/lookup) so re-opening a saved Bundle/BOGO/etc.
+ * shows product names instead of raw IDs, which is all a merchant sees
+ * otherwise (the picker fields only know a title for what was *just*
+ * picked in this session, not what's already saved from a previous one).
+ */
+export function collectProductIds(type: string, settings: Record<string, unknown>): string[] {
+  const schema = TYPE_SCHEMAS[type];
+  if (!schema) return [];
+
+  const ids: string[] = [];
+
+  for (const section of schema.sections) {
+    for (const field of section.fields) {
+      const value = settings[field.key];
+
+      if ((field.type === 'product' || field.type === 'variant') && typeof value === 'string' && value) {
+        ids.push(value);
+      } else if (field.type === 'products' && Array.isArray(value)) {
+        ids.push(...(value as string[]).filter((v) => typeof v === 'string'));
+      } else if (field.type === 'bundle_components' && Array.isArray(value)) {
+        for (const c of value as Array<{ productId?: string }>) {
+          if (c.productId) ids.push(c.productId);
+        }
+      }
+    }
+  }
+
+  return Array.from(new Set(ids));
+}

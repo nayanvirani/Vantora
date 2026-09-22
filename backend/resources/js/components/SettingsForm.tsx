@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { BlockStack, Text, TextField, Select, Checkbox, RangeSlider, InlineStack, Button, Tag, Thumbnail } from '@shopify/polaris';
 import type { FieldDef, FieldSection } from '../lib/settingsSchema';
 import { pickProduct, pickProducts, pickVariant, numericId } from '../lib/resourcePicker';
-import type { PickedProduct, PickedVariant } from '../lib/api';
+import type { PickedProduct, PickedVariant, ProductLookupEntry } from '../lib/api';
 
 type Values = Record<string, unknown>;
+type Lookup = Record<string, ProductLookupEntry>;
 
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
@@ -31,14 +32,17 @@ function ProductField({
   label,
   helpText,
   value,
+  lookup,
   onChange,
 }: {
   label: string;
   helpText?: string;
   value: string | undefined;
+  lookup?: Lookup;
   onChange: (id: string, product: PickedProduct | null) => void;
 }) {
   const [picked, setPicked] = useState<PickedProduct | null>(null);
+  const resolved = value ? lookup?.[value] : undefined;
 
   return (
     <BlockStack gap="150">
@@ -47,8 +51,10 @@ function ProductField({
       </Text>
       {value ? (
         <InlineStack gap="200" blockAlign="center">
-          {picked?.images?.[0]?.originalSrc && <Thumbnail source={picked.images[0].originalSrc} alt={picked.title} size="small" />}
-          <Text as="span">{picked?.title ?? numericId(value)}</Text>
+          {(picked?.images?.[0]?.originalSrc || resolved?.image) && (
+            <Thumbnail source={picked?.images?.[0]?.originalSrc ?? resolved!.image!} alt={picked?.title ?? resolved?.title ?? ''} size="small" />
+          )}
+          <Text as="span">{picked?.title ?? resolved?.title ?? numericId(value)}</Text>
           <Button
             variant="plain"
             onClick={async () => {
@@ -88,14 +94,17 @@ function VariantField({
   label,
   helpText,
   value,
+  lookup,
   onChange,
 }: {
   label: string;
   helpText?: string;
   value: string | undefined;
+  lookup?: Lookup;
   onChange: (id: string, variant: PickedVariant | null) => void;
 }) {
   const [picked, setPicked] = useState<PickedVariant | null>(null);
+  const resolved = value ? lookup?.[value] : undefined;
 
   const choose = async () => {
     const result = await pickVariant();
@@ -112,8 +121,10 @@ function VariantField({
       </Text>
       {value ? (
         <InlineStack gap="200" blockAlign="center">
-          {picked?.image?.originalSrc && <Thumbnail source={picked.image.originalSrc} alt={picked.displayName} size="small" />}
-          <Text as="span">{picked?.displayName ?? numericId(value)}</Text>
+          {(picked?.image?.originalSrc || resolved?.image) && (
+            <Thumbnail source={picked?.image?.originalSrc ?? resolved!.image!} alt={picked?.displayName ?? resolved?.title ?? ''} size="small" />
+          )}
+          <Text as="span">{picked?.displayName ?? resolved?.title ?? numericId(value)}</Text>
           <Button variant="plain" onClick={choose}>
             Change
           </Button>
@@ -134,11 +145,13 @@ function ProductsField({
   label,
   helpText,
   value,
+  lookup,
   onChange,
 }: {
   label: string;
   helpText?: string;
   value: string[] | undefined;
+  lookup?: Lookup;
   onChange: (ids: string[], titles: Record<string, string>) => void;
 }) {
   const [titles, setTitles] = useState<Record<string, string>>({});
@@ -167,7 +180,7 @@ function ProductsField({
       <InlineStack gap="150">
         {ids.map((id) => (
           <Tag key={id} onRemove={() => remove(id)}>
-            {titles[id] ?? numericId(id)}
+            {titles[id] ?? lookup?.[id]?.title ?? numericId(id)}
           </Tag>
         ))}
       </InlineStack>
@@ -292,7 +305,17 @@ function QuantityTiersField({ label, helpText, value, onChange }: { label: strin
 
 type BundleComponent = { productId: string; title?: string; quantity: number };
 
-function BundleComponentsField({ label, value, onChange }: { label: string; value: BundleComponent[] | undefined; onChange: (components: BundleComponent[]) => void }) {
+function BundleComponentsField({
+  label,
+  value,
+  lookup,
+  onChange,
+}: {
+  label: string;
+  value: BundleComponent[] | undefined;
+  lookup?: Lookup;
+  onChange: (components: BundleComponent[]) => void;
+}) {
   const components = value ?? [];
 
   const add = async () => {
@@ -314,7 +337,7 @@ function BundleComponentsField({ label, value, onChange }: { label: string; valu
       </Text>
       {components.map((c) => (
         <InlineStack key={c.productId} gap="200" blockAlign="center">
-          <Text as="span">{c.title ?? numericId(c.productId)}</Text>
+          <Text as="span">{c.title ?? lookup?.[c.productId]?.title ?? numericId(c.productId)}</Text>
           <div style={{ width: 100 }}>
             <TextField
               label="Qty"
@@ -337,7 +360,17 @@ function BundleComponentsField({ label, value, onChange }: { label: string; valu
   );
 }
 
-function Field({ field, values, onChange }: { field: FieldDef; values: Values; onChange: (key: string, value: unknown) => void }) {
+function Field({
+  field,
+  values,
+  lookup,
+  onChange,
+}: {
+  field: FieldDef;
+  values: Values;
+  lookup: Lookup;
+  onChange: (key: string, value: unknown) => void;
+}) {
   const value = values[field.key];
 
   switch (field.type) {
@@ -409,6 +442,7 @@ function Field({ field, values, onChange }: { field: FieldDef; values: Values; o
           label={field.label}
           helpText={field.helpText}
           value={value as string | undefined}
+          lookup={lookup}
           onChange={(id) => onChange(field.key, id)}
         />
       );
@@ -418,6 +452,7 @@ function Field({ field, values, onChange }: { field: FieldDef; values: Values; o
           label={field.label}
           helpText={field.helpText}
           value={value as string | undefined}
+          lookup={lookup}
           onChange={(id) => onChange(field.key, id)}
         />
       );
@@ -427,6 +462,7 @@ function Field({ field, values, onChange }: { field: FieldDef; values: Values; o
           label={field.label}
           helpText={field.helpText}
           value={value as string[] | undefined}
+          lookup={lookup}
           onChange={(ids) => onChange(field.key, ids)}
         />
       );
@@ -450,7 +486,12 @@ function Field({ field, values, onChange }: { field: FieldDef; values: Values; o
       );
     case 'bundle_components':
       return (
-        <BundleComponentsField label={field.label} value={value as BundleComponent[] | undefined} onChange={(c) => onChange(field.key, c)} />
+        <BundleComponentsField
+          label={field.label}
+          value={value as BundleComponent[] | undefined}
+          lookup={lookup}
+          onChange={(c) => onChange(field.key, c)}
+        />
       );
   }
 }
@@ -458,10 +499,12 @@ function Field({ field, values, onChange }: { field: FieldDef; values: Values; o
 export default function SettingsForm({
   sections,
   values,
+  lookup,
   onChange,
 }: {
   sections: FieldSection[];
   values: Values;
+  lookup?: Lookup;
   onChange: (key: string, value: unknown) => void;
 }) {
   return (
@@ -473,7 +516,7 @@ export default function SettingsForm({
           </Text>
           <BlockStack gap="300">
             {section.fields.map((field) => (
-              <Field key={field.key} field={field} values={values} onChange={onChange} />
+              <Field key={field.key} field={field} values={values} lookup={lookup ?? {}} onChange={onChange} />
             ))}
           </BlockStack>
         </BlockStack>
