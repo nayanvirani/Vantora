@@ -3,9 +3,11 @@ import { Page, Layout, Card, Text, Button, BlockStack, InlineStack, Badge, Banne
 import { api, type FeatureConfig, type ProductLookupEntry } from '../lib/api';
 import { TYPE_SCHEMAS, collectProductIds } from '../lib/settingsSchema';
 import { featureLabel, featureIcon } from '../lib/featureTypes';
+import { CODE_SNIPPETS } from '../lib/codeSnippets';
 import SettingsForm from '../components/SettingsForm';
 import ToolPreview from '../components/ToolPreview';
 import IconTile from '../components/IconTile';
+import CodeSnippet from '../components/CodeSnippet';
 
 const STATUS_TONE: Record<string, 'success' | 'info' | undefined> = {
   active: 'success',
@@ -190,6 +192,11 @@ export default function ToolTypeScreen({ type, locked, onBack }: { type: string;
                   lookup={lookup}
                 />
               </Card>
+              {CODE_SNIPPETS[type] && (
+                <Card>
+                  <CodeSnippet code={CODE_SNIPPETS[type]} />
+                </Card>
+              )}
             </BlockStack>
           </Layout.Section>
           <Layout.Section variant="oneThird">
