@@ -61,5 +61,16 @@ Route::post('/pixel/events', [PixelEventController::class, 'store'])
     ->middleware('throttle:120,1');
 
 // Embedded admin app entry point: resources/views/app.blade.php, the
-// Polaris + App Bridge SPA built by Laravel's own Vite pipeline.
+// Polaris + App Bridge SPA built by Laravel's own Vite pipeline. Every nav
+// destination gets its own real route (rather than one route + in-memory
+// tab state) so <s-app-nav>'s <s-link href="..."> entries -- which Shopify
+// Admin renders in its own left sidebar, outside our iframe -- resolve to
+// an actual page; AppRoot reads window.location.pathname to pick the tab.
 Route::get('/', [EmbeddedAppController::class, 'show'])->name('embedded.entry');
+Route::get('/storefront', [EmbeddedAppController::class, 'show'])->name('embedded.storefront');
+Route::get('/offers', [EmbeddedAppController::class, 'show'])->name('embedded.offers');
+Route::get('/funnels', [EmbeddedAppController::class, 'show'])->name('embedded.funnels');
+Route::get('/recipes', [EmbeddedAppController::class, 'show'])->name('embedded.recipes');
+Route::get('/analytics', [EmbeddedAppController::class, 'show'])->name('embedded.analytics');
+Route::get('/ai', [EmbeddedAppController::class, 'show'])->name('embedded.ai');
+Route::get('/settings', [EmbeddedAppController::class, 'show'])->name('embedded.settings');
