@@ -1,0 +1,22 @@
+# F-34 Thank You Page Offers, F-35 Post-purchase Survey, F-37 Referral
+# (Thank You side). Renders on the Thank You page for all plans except
+# Shopify Starter (spec section 2) -- the app's Checkout screen should show
+# an eligibility check for that, not yet built (see ROADMAP).
+# UNTESTED: no dev store in this environment to verify rendering/network
+# calls against a real order.
+api_version = "2026-07"
+
+[[extensions]]
+name = "t:name"
+handle = "thank-you-blocks"
+type = "ui_extension"
+uid = "28265bef-6b73-8ff2-b435-ff7dfe76cd4e78b69818"
+
+[[extensions.targeting]]
+module = "./src/Checkout.jsx"
+target = "purchase.thank-you.block.render"
+
+[extensions.capabilities]
+# Needed to call the app server for the offer/discount/survey question and
+# to POST the survey answer and referral link generation.
+network_access = true

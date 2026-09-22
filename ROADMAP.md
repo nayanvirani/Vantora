@@ -4,8 +4,13 @@ Tracks progress against spec section 11 (Development phases). Update this file a
 phases move from "not started" to "in progress" to "done" — it's the map back into
 the spec for whoever (human or agent) picks this up next.
 
-All extensions are deployed and released to the Partner Dashboard as of app version
-**vantora-6** (`shopify app deploy`). The backend is deployed and live on Railway at
+All extensions are deployed to the Partner Dashboard. **vantora-6** is the currently
+*released* (live) version; **vantora-7** exists but is unreleased — see Phase 6 below,
+it adds `thank-you-blocks`, which Shopify blocked from auto-releasing because it
+requests `network_access` and that capability needs separate Partner Dashboard
+approval before publishing (discovered by attempting the deploy, not documented
+anywhere obvious beforehand — worth knowing before adding `network_access` to any
+other checkout/thank-you extension). The backend is deployed and live on Railway at
 `https://vantora-production.up.railway.app`, auto-deploying on every push to `main`.
 
 ## Phase 1 — Foundation and theme tools (weeks 1-3): **scaffolded**
@@ -27,10 +32,16 @@ Done:
 - Railway deploy wiring: Railpack builder (no Dockerfile), Postgres + Redis services,
   three services sharing one repo (web / queue worker / monitoring cron)
 
+Now done (was the top gap, closed this session): the admin SPA has a real **Tools**
+screen (`resources/js/pages/Tools.tsx`) covering every feature type, grouped by
+category, with activate/pause/delete and a JSON settings editor (shape hints per
+type, no dedicated form or product picker yet — see below).
+
 Not done / needs a real pass:
-- Admin **config screens** for the storefront tools (the SPA has no "Tools" section yet
-  — `feature_configs` CRUD exists on the API side, no UI beyond the dashboard's Fix
-  buttons, which create configs with empty settings)
+- Product/variant **pickers** — Tools' settings editor is a raw JSON textarea for
+  anything needing a Shopify GID (bundle components, BOGO products, gift variant,
+  cart upsell/FBT picks). Works, but a merchant has to paste GIDs by hand. App
+  Bridge's resource picker (`shopify.resourcePicker()`) is the fix, not yet wired up.
 - Syncing `feature_configs.settings` into the theme blocks' actual rendered values for
   the Phase 1 tools (Sticky ATC/Shipping Bar/Trust Badges/FAQ only read their own
   theme-editor schema settings today, not what the merchant configured in the admin —
@@ -53,7 +64,9 @@ Simplified vs. spec — needs a real pass before this can be called "done":
   the theme itself, cart AOV vs. shipping threshold, mobile CTA visibility). Rewriting
   this to actually parse theme assets and shop analytics is the bulk of remaining
   Phase 2 work.
-- Score history has an API (`GET /api/analytics/score-history`) but no chart UI yet.
+- Score history now has both the API and a chart (`resources/js/components/ScoreChart.tsx`,
+  on the Analytics tab) — hand-built SVG, single series so no legend needed
+  (dataviz-skill guidance), 2px line, rounded data-ends, hover crosshair/tooltip.
 
 ## Phase 3 — Offers and bundles (weeks 7-9): **built, partly verified**
 
@@ -77,10 +90,10 @@ Done: Cart Upsell, Frequently Bought Together, Cart Goal Tracker theme blocks, b
 by a signed App Proxy (`/apps/vantora/*`, `VerifyShopifyAppProxySignature`) for live
 config without a theme redeploy.
 
-Not done: admin UI for configuring any of this (product pickers for bundles/BOGO/FBT
-sets, tier editors) — the backend (`FeatureConfigController`, `DiscountSyncService`,
-`ProxyController`) is ready to be driven by one, but nothing in `resources/js` calls it
-yet beyond the dashboard's generic Fix flow.
+Admin UI: the Tools screen now creates/activates configs of every type in this phase
+(`FeatureConfigController` → `FeatureActivationService` → `DiscountSyncService`), just
+through the generic JSON settings editor rather than dedicated tier/product-picker
+forms — see the Phase 1 "product/variant pickers" note above.
 
 ## Phase 4 — AI, recipes, analytics (weeks 10-11): **built, partly verified**
 
@@ -108,8 +121,12 @@ Done:
   (Postmark/Resend config already scaffolded in `config/services.php`, just needs
   credentials).
 
+Now done: Basic/Advanced analytics UI (`resources/js/pages/Analytics.tsx` — totals for
+all plans, per-feature breakdown gated to Pro) and an AI Optimizer screen
+(`resources/js/pages/AiOptimizer.tsx` — submit a product, see usage remaining,
+approve/discard).
+
 Not done:
-- Basic vs. Advanced analytics UI (API exists, no charts/tables in the admin SPA)
 - Smart/AI-suggested picks for Cart Upsell/FBT (manual picks only — the `picks` JSON
   shape supports either, nothing generates AI suggestions yet)
 
@@ -137,9 +154,31 @@ as a lead-time risk, and F-33 is blocked on approval.
 Backend: `PostPurchaseController::bestOffer` does simple cart-value-threshold matching
 against the `offers` table — a real v1, but also unverified against a live checkout.
 
-Not started: Thank You Page Offers (F-34), Post-purchase Survey (F-35), Order Status
-Page Blocks (F-36), Referral/Reorder (F-37), Funnel Analytics UI (F-38 backend partly
-covered by the analytics endpoints above).
+`thank-you-blocks` extension built covering F-34 (cross-sell + next-order discount
+code), F-35 (survey), F-37 (referral link) — one extension, three blocks, since all
+three target the same `purchase.thank-you.block.render` surface. Uses the *modern*
+Checkout UI Extensions API (`<s-*>` web components), confirmed correct against
+`@shopify/ui-extensions`'s own component/prop type definitions this time (not just
+reviewed) — this is a **different, newer API** than `post-purchase-upsell`'s
+`post-purchase-ui-extensions-react`, which is legacy and specific to the one-click
+upsell interstitial only. **Blocked from release**: it requests `network_access`
+(needed to call the backend for offer/survey/referral content), and Shopify requires
+separate Partner Dashboard approval for that capability on checkout-surface
+extensions before a version carrying it can go live — `shopify app deploy` created
+version `vantora-7` but did not release it. Request that approval before this ships.
+Backend: `ThankYouController` (`/thank-you/data`, `/thank-you/survey`) — unverified,
+same as everything else calling into a checkout/thank-you/post-purchase sandbox.
+
+**Not started: F-36 Order Status Page Blocks.** Investigated and deliberately not
+guessed at: Order Status extensions live on a *different, separate* extension surface
+(`customer-account.order-status.block.render` and friends — part of the "customer
+accounts" API, distinct from the `purchase.*` checkout/thank-you targets used above),
+which needs its own research pass and likely the new Customer Accounts system enabled
+to test. Building it against the wrong surface API would just be another unverified
+guess, so it's left undone rather than faked.
+
+F-38 Funnel Analytics UI: backend covered by the analytics endpoints from Phase 4; no
+dedicated funnel view (views/acceptance-rate/drop-off) in the admin SPA yet.
 
 ## Phase 7 — Checkout blocks, MVP-2 (weeks 17-19): **one extension scaffolded, unverified**
 
@@ -178,3 +217,6 @@ quality even with the "no bugs" goal.
 - `AI_PROVIDER_API_KEY` and a real mail provider (`MAIL_MAILER` + Postmark/Resend
   credentials) both need to be set in Railway variables before F-19 and F-08's email
   actually work in production — the code path is complete, the credentials aren't set.
+- Checkout/thank-you `ui_extension`s that set `network_access = true` need Shopify's
+  approval before a version carrying them can be released (see Phase 6) — factor that
+  lead time in before adding a network call to any future F-40–F-45 extension too.
