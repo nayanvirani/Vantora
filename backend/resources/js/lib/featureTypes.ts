@@ -7,7 +7,6 @@ import {
   CartDiscountIcon,
   GiftCardIcon,
   PackageIcon,
-  ProductAddIcon,
   TargetIcon,
 } from '@shopify/polaris-icons';
 import type { IconSource } from '@shopify/polaris';
@@ -78,14 +77,6 @@ export const FEATURE_TYPES: FeatureTypeMeta[] = [
     description: 'Sells a fixed set of products together as one discounted offer.',
     icon: PackageIcon,
     category: 'offers',
-  },
-  {
-    type: 'cart_upsell',
-    label: 'Cart Upsell',
-    description: 'Suggests hand-picked add-on products right in the cart.',
-    icon: ProductAddIcon,
-    category: 'funnels',
-    proOnly: true,
   },
   {
     type: 'goal_tracker',

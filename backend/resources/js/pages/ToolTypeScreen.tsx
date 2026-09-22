@@ -20,7 +20,7 @@ const STATUS_TONE: Record<string, 'success' | 'info' | undefined> = {
 // nowhere to apply -- skip the list screen and edit the one config directly.
 // trust_badges/faq support per-product targeting instead, so they keep the
 // list screen (multiple configs: one sitewide default plus targeted ones).
-const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'goal_tracker', 'cart_upsell'];
+const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'goal_tracker'];
 
 function defaultsFor(type: string): Record<string, unknown> {
   const values: Record<string, unknown> = {};

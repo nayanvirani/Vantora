@@ -239,29 +239,6 @@ export const TYPE_SCHEMAS: Record<string, TypeSchema> = {
     ],
   },
 
-  cart_upsell: {
-    preview: 'upsell_list',
-    sections: [
-      {
-        title: 'Content',
-        fields: [
-          { type: 'text', key: 'heading', label: 'Heading', default: 'You might also like' },
-          { type: 'range', key: 'max_items', label: 'Max items shown', min: 1, max: 6, default: 3 },
-        ],
-      },
-      {
-        title: 'Products',
-        fields: [{ type: 'picks', key: 'picks', label: 'Recommended products', helpText: 'Shown in the cart.' }],
-      },
-      {
-        title: 'Appearance',
-        fields: [
-          { type: 'color', key: 'accent_color', label: 'Accent color', default: '#111111' },
-        ],
-      },
-    ],
-  },
-
   quantity_discount: {
     preview: 'discount_tag',
     sections: [

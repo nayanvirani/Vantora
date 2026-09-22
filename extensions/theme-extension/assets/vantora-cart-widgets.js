@@ -7,7 +7,6 @@
  *
  *   <div class="vantora-shipping-bar"></div>
  *   <div class="vantora-cart-goal-tracker"></div>
- *   <div class="vantora-cart-upsell"></div>
  *
  * Classes, not IDs: a cart drawer's markup is typically included
  * globally (present on every page, not just /cart), so if a merchant
@@ -133,85 +132,6 @@
     document.addEventListener('cart:refresh', refresh);
   }
 
-  function initCartUpsell(root) {
-    var v = SETTINGS.cart_upsell;
-    if (!v) return;
-
-    root.innerHTML =
-      '<div style="padding:12px 0;">' +
-        '<p style="font-weight:600;margin:0 0 8px;">' + (v.heading || '') + '</p>' +
-        '<div class="vantora-w__items" style="display:flex;flex-direction:column;gap:8px;" aria-live="polite"></div>' +
-      '</div>';
-
-    var maxItems = v.max_items || 3;
-    var container = root.querySelector('.vantora-w__items');
-    root.hidden = true;
-
-    function render(recommendations) {
-      container.innerHTML = '';
-      var shown = recommendations.slice(0, maxItems);
-      root.hidden = shown.length === 0;
-      if (shown.length && window.VantoraAnalytics) VantoraAnalytics.report('impression', 'cart_upsell');
-
-      shown.forEach(function (product) {
-        var row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:10px;';
-
-        var img = document.createElement('img');
-        img.src = product.image || '';
-        img.alt = product.title || '';
-        img.width = 48;
-        img.height = 48;
-        img.loading = 'lazy';
-        img.style.cssText = 'border-radius:4px;object-fit:cover;';
-
-        var info = document.createElement('div');
-        info.style.cssText = 'flex:1;display:flex;flex-direction:column;font-size:13px;';
-        var titleSpan = document.createElement('span');
-        titleSpan.textContent = product.title || '';
-        var priceSpan = document.createElement('span');
-        priceSpan.textContent = product.price || '';
-        info.appendChild(titleSpan);
-        info.appendChild(priceSpan);
-
-        var button = document.createElement('button');
-        button.type = 'button';
-        button.textContent = 'Add';
-        button.style.cssText = 'background:' + (v.accent_color || '#111') + ';color:#fff;border:0;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;';
-        button.addEventListener('click', function () {
-          if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'cart_upsell');
-          var item = { id: product.variant_id, quantity: 1, properties: { _vantora_source: 'cart_upsell' } };
-          var addPromise = window.VantoraCart
-            ? VantoraCart.add(item)
-            : fetch('/cart/add.js', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
-          addPromise.then(refresh);
-        });
-
-        row.appendChild(img);
-        row.appendChild(info);
-        row.appendChild(button);
-        container.appendChild(row);
-      });
-    }
-
-    function refresh() {
-      fetch('/cart.js')
-        .then(function (r) { return r.json(); })
-        .then(function (cart) {
-          var productIds = cart.items.map(function (item) { return item.product_id; });
-          return fetch('/apps/vantora/recommendations?surface=cart&product_ids=' + productIds.join(','));
-        })
-        .then(function (r) { return r.ok ? r.json() : { recommendations: [] }; })
-        .then(function (data) { render(data.recommendations || []); })
-        .catch(function () {});
-    }
-
-    refresh();
-    document.addEventListener('vantora:cart-updated', refresh);
-    document.addEventListener('cart:refresh', refresh);
-  }
-
   forEachPlaceholder('vantora-shipping-bar', initShippingBar);
   forEachPlaceholder('vantora-cart-goal-tracker', initGoalTracker);
-  forEachPlaceholder('vantora-cart-upsell', initCartUpsell);
 })();

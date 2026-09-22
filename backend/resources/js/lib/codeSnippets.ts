@@ -21,5 +21,4 @@
 export const PLACEHOLDER_CLASSES: Record<string, string> = {
   shipping_bar: 'vantora-shipping-bar',
   goal_tracker: 'vantora-cart-goal-tracker',
-  cart_upsell: 'vantora-cart-upsell',
 };

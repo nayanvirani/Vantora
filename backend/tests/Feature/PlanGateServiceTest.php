@@ -91,16 +91,16 @@ class PlanGateServiceTest extends TestCase
     {
         $shop = $this->makeShop();
 
-        $this->assertFalse($this->planGate->canAccessModule($shop, 'cart_upsell'));
-        $this->assertFalse($this->planGate->canActivateFeature($shop, 'cart_upsell'));
+        $this->assertFalse($this->planGate->canAccessModule($shop, 'goal_tracker'));
+        $this->assertFalse($this->planGate->canActivateFeature($shop, 'goal_tracker'));
     }
 
     public function test_pro_shop_can_access_pro_only_module(): void
     {
         $shop = $this->makeShop('pro');
 
-        $this->assertTrue($this->planGate->canAccessModule($shop, 'cart_upsell'));
-        $this->assertTrue($this->planGate->canActivateFeature($shop, 'cart_upsell'));
+        $this->assertTrue($this->planGate->canAccessModule($shop, 'goal_tracker'));
+        $this->assertTrue($this->planGate->canActivateFeature($shop, 'goal_tracker'));
     }
 
     public function test_non_gated_feature_type_is_unrestricted_on_starter(): void

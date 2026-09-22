@@ -20,7 +20,7 @@ class FeatureConfigController extends Controller
      * so multiple configs legitimately coexist -- one untargeted config
      * as the sitewide default plus targeted ones for specific products.
      */
-    protected const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'goal_tracker', 'cart_upsell'];
+    protected const SINGLETON_TYPES = ['sticky_atc', 'shipping_bar', 'goal_tracker'];
 
     public function __construct(protected PlanGateService $planGate, protected FeatureActivationService $activation)
     {

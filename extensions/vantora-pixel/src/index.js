@@ -10,10 +10,9 @@ import { register } from "@shopify/web-pixels-extension";
  *
  * Order-level revenue attribution to a specific Vantora feature relies on
  * line item properties the theme blocks set when they add to cart (see
- * `_vantora_source` in sticky-add-to-cart.liquid, cart-upsell.liquid and
- * frequently-bought-together.liquid) -- checkout_completed line items carry
- * that property through to checkout (Checkout Extensibility shops only),
- * and the backend reads it there.
+ * `_vantora_source` in sticky-add-to-cart.liquid and free-gift.liquid) --
+ * checkout_completed line items carry that property through to checkout
+ * (Checkout Extensibility shops only), and the backend reads it there.
  *
  * Covers all customer-journey events Shopify's Web Pixels API exposes that
  * are useful for future campaign targeting (page_viewed, collection_viewed,

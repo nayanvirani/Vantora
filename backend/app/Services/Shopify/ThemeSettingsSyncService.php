@@ -36,7 +36,6 @@ class ThemeSettingsSyncService
         'trust_badges' => 'trust_badges',
         'faq' => 'faq',
         'goal_tracker' => 'goal_tracker',
-        'cart_upsell' => 'cart_upsell',
     ];
 
     /**

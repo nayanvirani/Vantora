@@ -1,6 +1,6 @@
 /**
  * Shared add-to-cart helper for every Vantora block that adds an item
- * (sticky-add-to-cart, cart-upsell, frequently-bought-together, free-gift).
+ * (sticky-add-to-cart, free-gift).
  * A merchant reported Add to cart not opening their cart drawer even with
  * it enabled -- confirmed live: raw fetch('/cart/add.js') has no way to
  * know a drawer exists or how to open it, since Shopify doesn't define a
