@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'pixel/*',
             'post-purchase/*',
             'thank-you/*',
+            'checkout/*',
         ]);
 
         $middleware->alias([
@@ -36,6 +37,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*', 'apps/*', 'pixel/*', 'webhooks/*', 'post-purchase/*', 'thank-you/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*', 'apps/*', 'pixel/*', 'webhooks/*', 'post-purchase/*', 'thank-you/*', 'checkout/*') || $request->expectsJson(),
         );
     })->create();

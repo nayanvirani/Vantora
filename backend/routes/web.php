@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\ShopifyAuthController;
+use App\Http\Controllers\CheckoutUpsellController;
 use App\Http\Controllers\EmbeddedAppController;
 use App\Http\Controllers\PixelEventController;
 use App\Http\Controllers\PostPurchaseController;
@@ -50,6 +51,12 @@ Route::post('/post-purchase/best-offer', [PostPurchaseController::class, 'bestOf
 Route::prefix('thank-you')->middleware(['throttle:60,1', 'shopify.extension_session'])->group(function () {
     Route::post('/data', [ThankYouController::class, 'data']);
     Route::post('/survey', [ThankYouController::class, 'survey']);
+});
+
+// Checkout bundle upsell extension backend (extensions/checkout-bundle-upsell).
+// Same session-token auth as thank-you/* above.
+Route::prefix('checkout')->middleware(['throttle:60,1', 'shopify.extension_session'])->group(function () {
+    Route::post('/bundle-upsell', [CheckoutUpsellController::class, 'data']);
 });
 
 // Web Pixel ingestion (extensions/vantora-pixel). Public and unauthenticated

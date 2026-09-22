@@ -1,0 +1,23 @@
+# F-18 checkout-stage Bundle upsell. Pro-only (see
+# PlanGateService::canAccessModule('checkout_extension'), enforced
+# server-side in CheckoutUpsellController -- the extension itself has no
+# way to know the shop's plan, so it just renders nothing when the
+# backend returns no bundle data).
+# UNTESTED: no dev store in this environment to verify rendering/network
+# calls against a real checkout.
+api_version = "2026-07"
+
+[[extensions]]
+name = "t:name"
+handle = "checkout-bundle-upsell"
+type = "ui_extension"
+uid = "f1cb4bc4-08e5-e0bc-7c19-0a42befc44234ebca54a"
+
+[[extensions.targeting]]
+module = "./src/Checkout.jsx"
+target = "purchase.checkout.block.render"
+
+[extensions.capabilities]
+# Needed to call the app server for the bundle to offer and to add it to
+# the cart via applyCartLinesChange.
+network_access = true
