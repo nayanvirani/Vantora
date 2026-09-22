@@ -36,6 +36,7 @@ class ThemeSettingsSyncService
         'trust_badges' => 'trust_badges',
         'faq' => 'faq',
         'goal_tracker' => 'goal_tracker',
+        'quantity_discount' => 'quantity_discount',
     ];
 
     /**
@@ -44,8 +45,13 @@ class ThemeSettingsSyncService
      * targeting") -- a config with settings.target_product_ids writes to
      * each of those products instead of the shop, so it only applies
      * there; a config with no targeting still writes shop-wide as before.
+     *
+     * quantity_discount reuses this same product-vs-shop resolve order for
+     * its new storefront tier-table block, targeted via settings.product_ids
+     * (the field its Discount Function payload already uses to scope which
+     * products the discount applies to -- see targetProductIds() below).
      */
-    protected const PRODUCT_TARGETABLE_TYPES = ['trust_badges', 'faq'];
+    protected const PRODUCT_TARGETABLE_TYPES = ['trust_badges', 'faq', 'quantity_discount'];
 
     public function syncs(string $type): bool
     {
@@ -154,6 +160,13 @@ class ThemeSettingsSyncService
             return [];
         }
 
-        return array_values(array_filter($config->settings['target_product_ids'] ?? []));
+        // trust_badges/faq store targeting under settings.target_product_ids;
+        // quantity_discount's field is settings.product_ids (same semantic --
+        // "applies to these products, empty = store-wide" -- already used by
+        // its Discount Function payload, kept as-is here rather than renamed
+        // to avoid orphaning already-saved settings on live configs).
+        $ids = $config->settings['target_product_ids'] ?? $config->settings['product_ids'] ?? [];
+
+        return array_values(array_filter($ids));
     }
 }

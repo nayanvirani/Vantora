@@ -1,0 +1,67 @@
+{% comment %}
+  Quantity Discount storefront tier table (app block). The Quantity
+  Discount feature has existed as a fully working automatic Discount
+  Function (extensions/quantity-discount) since earlier in the project,
+  but had zero storefront presence -- a shopper had no way to know a
+  bigger order would be cheaper until the discount silently applied
+  itself at checkout. This block just shows the tiers; it never adds to
+  cart or reads live cart state, since the discount itself is already
+  automatic.
+
+  Settings resolve in the same product-then-shop order as
+  trust-badges.liquid: a product-specific `vantora` metafield (written
+  when settings.product_ids targets specific products), then the
+  shop-wide one (written when product_ids is empty, i.e. store-wide).
+  Renders nothing until the merchant has configured and activated
+  Quantity Discount in the app.
+{% endcomment %}
+{% assign v = shop.metafields.vantora.quantity_discount.value %}
+{% if product %}
+  {% assign product_v = product.metafields.vantora.quantity_discount.value %}
+  {% if product_v %}
+    {% assign v = product_v %}
+  {% endif %}
+{% endif %}
+
+{% if v and v.tiers.size > 0 %}
+{% assign tiers = v.tiers | sort: 'minQuantity' %}
+<div class="vantora-quantity-discount" {{ block.shopify_attributes }}>
+  {% if v.message %}
+    <p class="vantora-quantity-discount__heading">{{ v.message }}</p>
+  {% endif %}
+  <ul class="vantora-quantity-discount__tiers">
+    {% for tier in tiers %}
+      <li class="vantora-quantity-discount__tier">
+        <span class="vantora-quantity-discount__tier-qty">Buy {{ tier.minQuantity }}+</span>
+        <span class="vantora-quantity-discount__tier-pct">Save {{ tier.percentage }}%</span>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<style>
+  .vantora-quantity-discount { border: 1px solid rgba(0,0,0,.1); border-radius: 8px; padding: 16px; margin: 16px 0; }
+  .vantora-quantity-discount__heading { font-weight: 600; font-size: 14px; margin: 0 0 10px; }
+  .vantora-quantity-discount__tiers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .vantora-quantity-discount__tier { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+  .vantora-quantity-discount__tier-qty { color: rgba(0,0,0,.75); }
+  .vantora-quantity-discount__tier-pct { font-weight: 600; color: #1a7f37; }
+</style>
+
+<script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script>
+  (function () {
+    if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'quantity_discount');
+  })();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Vantora: Quantity Discount",
+  "target": "section",
+  "settings": [
+    { "type": "paragraph", "content": "Configured in the Vantora app (Offers > Quantity Discount). Shows the buy-more-save-more tiers on this product's page -- the discount itself applies automatically at checkout regardless of this block." }
+  ]
+}
+{% endschema %}
