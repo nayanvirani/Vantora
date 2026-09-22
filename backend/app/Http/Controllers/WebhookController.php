@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnalyticsDaily;
+use App\Models\FeatureConfig;
 use App\Models\Shop;
 use App\Models\WebhookEvent;
 use App\Services\Shopify\BillingService;
@@ -140,14 +142,66 @@ class WebhookController extends Controller
 
     public function ordersCreate(Request $request)
     {
-        [, , , $event, $done] = $this->authenticate($request);
+        [$domain, , $payload, $event, $done] = $this->authenticate($request);
 
         if (! $done) {
-            // TODO(phase 4): attribute the order to funnel events / analytics_daily.
+            $shop = Shop::query()->where('domain', $domain)->first();
+
+            if ($shop) {
+                $this->attributeOrderToOffers($shop, $payload);
+            }
+
             $this->markProcessed($event);
         }
 
         return response()->noContent();
+    }
+
+    /**
+     * F-21/F-22 analytics for the Offers category (quantity_discount, bogo,
+     * free_gift, bundle): unlike the storefront/funnel blocks (which fire
+     * their own impression/click events -- see PixelEventController), a
+     * Discount Function has no Vantora-rendered UI to attach a client-side
+     * event to. The only signal is the order itself: Shopify's
+     * orders/create payload lists each applied discount's title, which
+     * DiscountSyncService set to the offer's name/type when the discount
+     * was created, so it's matched back to a FeatureConfig here. Revenue is
+     * the order's full total (same simplification PixelEventController
+     * uses for storefront-sourced orders), not just the discounted amount.
+     */
+    protected function attributeOrderToOffers(Shop $shop, array $payload): void
+    {
+        $discountTitles = collect($payload['discount_applications'] ?? [])
+            ->pluck('title')
+            ->filter()
+            ->unique();
+
+        if ($discountTitles->isEmpty()) {
+            return;
+        }
+
+        $orderTotal = (float) ($payload['total_price'] ?? 0);
+        $today = now()->toDateString();
+
+        $configs = FeatureConfig::query()
+            ->where('shop_id', $shop->id)
+            ->whereIn('type', ['quantity_discount', 'bogo', 'free_gift', 'bundle'])
+            ->where('status', 'active')
+            ->get();
+
+        foreach ($configs as $config) {
+            if (! $discountTitles->contains($config->name ?? $config->type)) {
+                continue;
+            }
+
+            $row = AnalyticsDaily::query()->firstOrCreate(
+                ['shop_id' => $shop->id, 'config_id' => $config->id, 'date' => $today],
+                ['impressions' => 0, 'clicks' => 0, 'orders' => 0, 'revenue' => 0]
+            );
+
+            $row->increment('orders');
+            $row->increment('revenue', $orderTotal);
+        }
     }
 
     /**

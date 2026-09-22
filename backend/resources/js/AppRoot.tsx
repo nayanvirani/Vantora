@@ -3,7 +3,9 @@ import { Frame, Spinner, Box, Tabs } from '@shopify/polaris';
 import { api, type BillingStatus, type Shop } from './lib/api';
 import Plans from './pages/Plans';
 import Dashboard from './pages/Dashboard';
-import Tools from './pages/Tools';
+import Storefront from './pages/Storefront';
+import Offers from './pages/Offers';
+import Funnels from './pages/Funnels';
 import Recipes from './pages/Recipes';
 import Analytics from './pages/Analytics';
 import AiOptimizer from './pages/AiOptimizer';
@@ -11,7 +13,9 @@ import Settings from './pages/Settings';
 
 const TABS = [
   { id: 'home', content: 'Home' },
-  { id: 'tools', content: 'Tools' },
+  { id: 'storefront', content: 'Storefront' },
+  { id: 'offers', content: 'Offers' },
+  { id: 'funnels', content: 'Funnels' },
   { id: 'recipes', content: 'Recipes' },
   { id: 'analytics', content: 'Analytics' },
   { id: 'ai', content: 'AI' },
@@ -66,9 +70,16 @@ export default function App() {
     );
   }
 
+  // Each tab keeps its own internal navigation (category -> tool type ->
+  // create/edit) rather than a router, so re-selecting a top tab resets it
+  // -- switching tabs and back is treated as "start over" rather than
+  // needing history/URL state for what is, within one tab, a fairly shallow
+  // drill-down.
   const page = [
     <Dashboard key="home" shop={shop} />,
-    <Tools key="tools" shop={shop} />,
+    <Storefront key="storefront" shop={shop} />,
+    <Offers key="offers" shop={shop} />,
+    <Funnels key="funnels" shop={shop} />,
     <Recipes key="recipes" />,
     <Analytics key="analytics" shop={shop} />,
     <AiOptimizer key="ai" />,

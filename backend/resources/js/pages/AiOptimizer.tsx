@@ -42,7 +42,7 @@ export default function AiOptimizer() {
     setPicking(true);
     try {
       const result = await pickProduct();
-      if (result) setSelected(result[0]);
+      if (result) setSelected(result);
     } finally {
       setPicking(false);
     }

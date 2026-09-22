@@ -5,6 +5,14 @@ export type PickedProduct = {
   variants: Array<{ id: string; title: string; price?: string }>;
 };
 
+export type PickedVariant = {
+  id: string; // gid://shopify/ProductVariant/...
+  title: string;
+  displayName: string;
+  price?: string;
+  image?: { originalSrc: string };
+};
+
 declare global {
   interface Window {
     shopify: {
@@ -14,7 +22,7 @@ declare global {
         action?: 'add' | 'select';
         multiple?: boolean | number;
         filter?: { variants?: boolean; draft?: boolean; archived?: boolean };
-      }) => Promise<PickedProduct[] | undefined>;
+      }) => Promise<Array<PickedProduct | PickedVariant> | undefined>;
     };
   }
 }

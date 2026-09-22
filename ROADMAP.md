@@ -4,6 +4,64 @@ Tracks progress against spec section 11 (Development phases). Update this file a
 phases move from "not started" to "in progress" to "done" — it's the map back into
 the spec for whoever (human or agent) picks this up next.
 
+## GUI settings + preview rebuild, navigation split into Storefront/Offers/Funnels
+
+Per direction: the merchant is not technical, so the JSON-textarea settings editor
+(functional but a real UX gap, flagged since Phase 1) is gone. Replaced with:
+
+- `lib/settingsSchema.ts` — one field schema per feature type (11 types), grouped
+  into Content/Appearance/Devices/etc. sections. Field keys are the *actual* keys
+  each Liquid block's `{% schema %}` or Discount Function's config shape reads (not
+  invented ones) — pulled directly from those files, not guessed, so a value saved
+  here isn't a naming mismatch away from doing nothing. Two types (`free_gift`,
+  whose backend shape nests `trigger: {type, amount|productId}`) needed a small
+  `toSettings`/`fromSettings` transform pair since the form's flat fields don't
+  match the backend shape 1:1; documented inline why.
+- `components/SettingsForm.tsx` — generic renderer covering text/textarea/number/
+  select/checkbox/range plus richer types: `color` (native color input + hex
+  field), `product`/`variant` (Shopify's own resource picker, not a pasted GID --
+  see the AI Optimizer fix from last session), `products`/`picks` (multi-select,
+  `picks` also captures price/image for merchandising display), `quantity_tiers`
+  and `bundle_components` (repeatable rows). One field type = one component to
+  maintain, not one form per feature type.
+- `components/ToolPreview.tsx` — a live preview panel next to the form, one
+  renderer per visual shape (sticky bar, progress bar, badges, FAQ accordion,
+  upsell list, a "how this shows at checkout" tag for the four discount-based
+  offers, which have no Vantora-rendered storefront UI to preview literally).
+  Updates on every field change. This is an in-app *mockup*, not a live render of
+  the actual theme -- see the pre-existing "settings not synced to theme blocks"
+  gap below, still true for Phase 1 types.
+- `pages/ToolTypeScreen.tsx` + `pages/CategoryPage.tsx` — list existing
+  configurations of one type, edit (form + sticky preview side by side) or create
+  new, matching "Storefront/Offers/Funnels are separate top-level menus, each with
+  child items" -- `Tools.tsx` (the old single flat list) is gone.
+- `AppRoot.tsx` navigation is now Home / **Storefront** / **Offers** / **Funnels** /
+  Recipes / Analytics / AI / Settings.
+
+Two real backend bugs surfaced *while wiring this up* (both fixed, not just noted):
+- `FeatureActivationService::activate()` short-circuited on an already-active
+  config without re-syncing to Shopify -- meaning editing an already-active offer's
+  settings from the new GUI would update `feature_configs.settings` locally and
+  **never reach the actual Shopify discount**. The GUI always calls `/activate`
+  after saving (there's no separate "just push settings" action), so this had to
+  become "already active" = resync-and-return, not a no-op.
+- `ProxyController::frequentlyBoughtTogether` expected one `fbt` config holding a
+  `sets` array keyed by trigger product; the new GUI (correctly, matching every
+  other type) creates one `fbt` config *per* trigger product instead. Backend
+  updated to query by `settings.trigger_product_id` across all active `fbt`
+  configs rather than expecting a `sets` array that no longer gets written.
+
+Also: **F-21/F-22 analytics extended to the four Offers** (quantity_discount, bogo,
+free_gift, bundle), previously untracked since a Discount Function has no
+Vantora-rendered UI to attach a client-side impression/click event to. The
+`orders/create` webhook now matches each order's `discount_applications[].title`
+against active offer configs' names (set as the discount's title by
+`DiscountSyncService`) and records order/revenue against them in `analytics_daily`
+-- the same simplification as the pixel's order attribution (full order total, not
+just the discounted amount).
+
+Full app re-typechecks (`npm run typecheck`) and builds clean after all of this.
+
 All extensions are deployed and released to the Partner Dashboard as of app version
 **vantora-8** (`shopify app deploy`). The backend is deployed and live on Railway at
 `https://vantora-production.up.railway.app`, auto-deploying on every push to `main`.
@@ -127,7 +185,8 @@ Done:
 - Session-token auth middleware for the embedded app API (`VerifyShopifySessionToken`)
 - `PlanGateService` — single choke point for Starter/Pro limits (spec section 10),
   covered by `tests/Feature/PlanGateServiceTest.php`
-- `BillingService` — Shopify Billing API subscription creation + webhook activation
+- `BillingService` — Shopify Managed Pricing sync (webhook-driven; see the dedicated
+  section above for the switch away from self-managed `appSubscriptionCreate`)
 - Compliance + operational webhooks (app/uninstalled, shop/update, themes/*, products/*,
   orders/create, customers/data_request, customers/redact, shop/redact) with idempotent
   `webhook_events` dedup
@@ -138,20 +197,12 @@ Done:
 - Railway deploy wiring: Railpack builder (no Dockerfile), Postgres + Redis services,
   three services sharing one repo (web / queue worker / monitoring cron)
 
-Now done (was the top gap, closed this session): the admin SPA has a real **Tools**
-screen (`resources/js/pages/Tools.tsx`) covering every feature type, grouped by
-category, with activate/pause/delete and a JSON settings editor (shape hints per
-type, no dedicated form or product picker yet — see below).
+Now done (was the top gap, closed across the last two sessions): the admin SPA has
+real GUI settings screens for every feature type (`Storefront`/`Offers`/`Funnels`,
+see the dedicated section above) — proper form controls with a live preview, no JSON
+textarea, product/variant fields use Shopify's own resource picker.
 
 Not done / needs a real pass:
-- Product/variant **pickers** for Tools' settings editor — still a raw JSON textarea
-  for anything needing a Shopify GID (bundle components, BOGO products, gift variant,
-  cart upsell/FBT picks). `lib/resourcePicker.ts` (`pickProduct()`, wrapping App
-  Bridge's `shopify.resourcePicker()`, confirmed against shopify.dev) now exists and
-  is wired into the AI Optimizer's product selection — a merchant flagged that screen
-  specifically as needing a real picker instead of a pasted GID. Extending the same
-  helper into Tools' bundle/BOGO/free-gift/cart-upsell forms is a smaller lift now
-  that it exists, just not done yet.
 - Syncing `feature_configs.settings` into the theme blocks' actual rendered values for
   the Phase 1 tools (Sticky ATC/Shipping Bar/Trust Badges/FAQ only read their own
   theme-editor schema settings today, not what the merchant configured in the admin —
@@ -200,10 +251,10 @@ Done: Cart Upsell, Frequently Bought Together, Cart Goal Tracker theme blocks, b
 by a signed App Proxy (`/apps/vantora/*`, `VerifyShopifyAppProxySignature`) for live
 config without a theme redeploy.
 
-Admin UI: the Tools screen now creates/activates configs of every type in this phase
-(`FeatureConfigController` → `FeatureActivationService` → `DiscountSyncService`), just
-through the generic JSON settings editor rather than dedicated tier/product-picker
-forms — see the Phase 1 "product/variant pickers" note above.
+Admin UI: the Offers screen creates/activates configs of every type in this phase
+with real GUI forms (tiers, product pickers, discount type/value) and a live preview
+(`FeatureConfigController` → `FeatureActivationService` → `DiscountSyncService`),
+matching every other category — see the dedicated GUI rebuild section above.
 
 ## Phase 4 — AI, recipes, analytics (weeks 10-11): **built, partly verified**
 
