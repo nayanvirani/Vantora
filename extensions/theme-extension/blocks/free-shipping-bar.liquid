@@ -39,11 +39,33 @@
 <style>
   .vantora-shipping-bar { padding: 10px 16px; background: var(--vantora-bar-bg, #f4f4f4); color: var(--vantora-bar-text, #111); text-align: center; font-size: 14px; }
   .vantora-shipping-bar__message { margin: 0 0 6px; }
-  .vantora-shipping-bar__track { height: 6px; border-radius: 3px; background: rgba(0,0,0,.1); overflow: hidden; }
-  .vantora-shipping-bar__fill { height: 100%; background: var(--vantora-bar-fill, #1a7f37); transition: width .3s ease; }
+  /* !important + explicit display/box-sizing: some theme stylesheets reset
+     bare divs (display: none, box-sizing, etc.) broadly enough that an
+     empty-looking track/fill pair rendered invisibly -- a merchant found
+     this live. Higher-contrast default track color too (rgba(0,0,0,.1)
+     read as basically invisible on a light background). */
+  .vantora-shipping-bar__track {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 6px !important;
+    min-height: 6px !important;
+    border-radius: 3px !important;
+    background: rgba(0,0,0,.15) !important;
+    overflow: hidden !important;
+  }
+  .vantora-shipping-bar__fill {
+    display: block !important;
+    box-sizing: border-box !important;
+    height: 100% !important;
+    min-height: 6px !important;
+    background: var(--vantora-bar-fill, #1a7f37) !important;
+    transition: width .3s ease;
+  }
 </style>
 
 <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
 <script>
   (function () {
     var el = document.getElementById('vantora-shipping-bar');

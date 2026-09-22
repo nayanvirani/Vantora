@@ -17,6 +17,42 @@
  * standard cart:refresh/vantora:cart-updated events still fire either
  * way for any theme/listener that already relies on those.
  */
+/**
+ * Cart watcher: a merchant reported progress bars (shipping bar, goal
+ * tracker) not updating in real time -- confirmed cause: they only
+ * refreshed on our own vantora:cart-updated/cart:refresh events, which
+ * only fire when *our* code adds to cart. A shopper using the theme's own
+ * native +/- quantity controls or remove button in the cart drawer never
+ * touches our code at all, so nothing told the bar to refresh.
+ *
+ * Fix is theme-agnostic rather than guessing at Dawn's (or any theme's)
+ * own event conventions: every cart mutation, from anywhere, has to go
+ * through Shopify's cart AJAX endpoints (/cart/add, /cart/change,
+ * /cart/update, /cart/clear) -- that's the actual protocol-level
+ * guarantee, not a theme convention. Patching window.fetch once to watch
+ * for those URLs catches every mutation regardless of who triggered it.
+ */
+(function () {
+  if (window.__vantoraCartWatcherInstalled) return;
+  window.__vantoraCartWatcherInstalled = true;
+
+  var originalFetch = window.fetch;
+  var CART_MUTATION_RE = /\/cart\/(add|change|update|clear)(\.js)?(\?|$)/;
+
+  window.fetch = function (input, init) {
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    var isMutation = CART_MUTATION_RE.test(url);
+
+    return originalFetch.apply(this, arguments).then(function (response) {
+      if (isMutation && response.ok) {
+        document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
+        document.dispatchEvent(new CustomEvent('cart:refresh'));
+      }
+      return response;
+    });
+  };
+})();
+
 window.VantoraCart = window.VantoraCart || {
   /**
    * options.openDrawer defaults to true (a shopper just clicked an Add
