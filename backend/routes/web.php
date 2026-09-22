@@ -44,9 +44,11 @@ Route::prefix('apps/vantora')->middleware('shopify.proxy')->group(function () {
 Route::post('/post-purchase/best-offer', [PostPurchaseController::class, 'bestOffer'])
     ->middleware('throttle:60,1');
 
-// Thank You page extension backend (extensions/thank-you-blocks). Public,
-// same reasoning as post-purchase/best-offer. UNTESTED.
-Route::prefix('thank-you')->middleware('throttle:60,1')->group(function () {
+// Thank You page extension backend (extensions/thank-you-blocks).
+// Authenticated via the session token the extension attaches through
+// shopify.sessionToken.get() -- unlike post-purchase/best-offer, this
+// surface does expose that API. See VerifyShopifyExtensionSessionToken.
+Route::prefix('thank-you')->middleware(['throttle:60,1', 'shopify.extension_session'])->group(function () {
     Route::post('/data', [ThankYouController::class, 'data']);
     Route::post('/survey', [ThankYouController::class, 'survey']);
 });

@@ -22,32 +22,34 @@ function Extension() {
   useEffect(() => {
     const order = shopify.orderConfirmation?.value?.order;
 
-    fetch(`${APP_URL}/thank-you/data`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        shop: shopify.shop.myshopifyDomain,
-        order_id: order?.id,
-        is_first_order: shopify.orderConfirmation?.value?.isFirstOrder,
-      }),
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then(setData)
-      .catch(() => setData(null));
+    shopify.sessionToken.get().then((token) =>
+      fetch(`${APP_URL}/thank-you/data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          order_id: order?.id,
+          is_first_order: shopify.orderConfirmation?.value?.isFirstOrder,
+        }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then(setData)
+        .catch(() => setData(null))
+    );
   }, []);
 
   if (!data) {
     return null;
   }
 
-  const submitSurvey = () => {
+  const submitSurvey = async () => {
     if (!surveyAnswer) return;
+
+    const token = await shopify.sessionToken.get();
 
     fetch(`${APP_URL}/thank-you/survey`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
-        shop: shopify.shop.myshopifyDomain,
         order_id: shopify.orderConfirmation?.value?.order?.id,
         question_id: data.survey?.id,
         answer: surveyAnswer,

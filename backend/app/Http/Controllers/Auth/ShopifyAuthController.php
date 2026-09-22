@@ -60,6 +60,13 @@ class ShopifyAuthController extends Controller
             ['domain' => $shop],
             [
                 'access_token' => $tokenData['access_token'],
+                'refresh_token' => $tokenData['refresh_token'] ?? null,
+                'access_token_expires_at' => isset($tokenData['expires_in'])
+                    ? now()->addSeconds($tokenData['expires_in'])
+                    : null,
+                'refresh_token_expires_at' => isset($tokenData['refresh_token_expires_in'])
+                    ? now()->addSeconds($tokenData['refresh_token_expires_in'])
+                    : null,
                 'scopes' => explode(',', $tokenData['scope'] ?? ''),
                 'installed_at' => now(),
                 'uninstalled_at' => null,

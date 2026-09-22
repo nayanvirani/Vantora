@@ -22,7 +22,11 @@ redirect_urls = [
 ]
 
 [webhooks]
-api_version = "2026-01"
+# Kept in sync with SHOPIFY_API_VERSION (backend Admin GraphQL calls) and
+# every extension's own api_version -- mixing versions across the same app
+# risks a webhook payload shape or GraphQL field that was verified against
+# one version silently not matching what's actually delivered/available.
+api_version = "2026-07"
 
   [[webhooks.subscriptions]]
   compliance_topics = ["customers/data_request"]

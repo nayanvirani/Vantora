@@ -3,15 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Offer;
-use App\Models\Shop;
 use App\Models\SurveyResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 /**
  * F-34 Thank You Page Offers, F-35 Post-purchase Survey, F-37 Referral
- * backend, called directly by extensions/thank-you-blocks (sandboxed like
- * the pixel and post-purchase extension -- no session token available).
+ * backend, called by extensions/thank-you-blocks. Authenticated via
+ * VerifyShopifyExtensionSessionToken (the checkout/thank-you surface does
+ * expose shopify.sessionToken.get(), unlike the legacy post-purchase
+ * extension) -- shop comes from the verified token, never a request field.
  *
  * UNTESTED: no dev store in this environment to verify the extension's
  * network calls actually reach these routes with the expected shape.
@@ -20,16 +21,16 @@ class ThankYouController extends Controller
 {
     public function data(Request $request)
     {
+        $shop = $request->attributes->get('shop');
+
+        if ($shop->currentPlan() !== 'pro') {
+            return response()->json(null, 404);
+        }
+
         $data = $request->validate([
-            'shop' => ['required', 'string'],
             'order_id' => ['nullable', 'string'],
             'is_first_order' => ['nullable', 'boolean'],
         ]);
-
-        $shop = Shop::query()->where('domain', $data['shop'])->whereNull('uninstalled_at')->first();
-        if (! $shop || $shop->currentPlan() !== 'pro') {
-            return response()->json(null, 404);
-        }
 
         $crossSell = Offer::query()
             ->where('shop_id', $shop->id)
@@ -53,17 +54,13 @@ class ThankYouController extends Controller
 
     public function survey(Request $request)
     {
+        $shop = $request->attributes->get('shop');
+
         $data = $request->validate([
-            'shop' => ['required', 'string'],
             'order_id' => ['required', 'string'],
             'question_id' => ['nullable', 'string'],
             'answer' => ['required', 'string'],
         ]);
-
-        $shop = Shop::query()->where('domain', $data['shop'])->whereNull('uninstalled_at')->first();
-        if (! $shop) {
-            return response()->json(['ok' => false], 404);
-        }
 
         SurveyResponse::query()->create([
             'shop_id' => $shop->id,

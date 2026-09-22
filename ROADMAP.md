@@ -4,14 +4,66 @@ Tracks progress against spec section 11 (Development phases). Update this file a
 phases move from "not started" to "in progress" to "done" — it's the map back into
 the spec for whoever (human or agent) picks this up next.
 
-All extensions are deployed to the Partner Dashboard. **vantora-6** is the currently
-*released* (live) version; **vantora-7** exists but is unreleased — see Phase 6 below,
-it adds `thank-you-blocks`, which Shopify blocked from auto-releasing because it
-requests `network_access` and that capability needs separate Partner Dashboard
-approval before publishing (discovered by attempting the deploy, not documented
-anywhere obvious beforehand — worth knowing before adding `network_access` to any
-other checkout/thank-you extension). The backend is deployed and live on Railway at
+All extensions are deployed and released to the Partner Dashboard as of app version
+**vantora-8** (`shopify app deploy`). The backend is deployed and live on Railway at
 `https://vantora-production.up.railway.app`, auto-deploying on every push to `main`.
+
+Note on `network_access`: deploying `thank-you-blocks` (which requests it) first
+produced a version (`vantora-7`) that built and validated but did **not**
+auto-release — Shopify said the capability "must be requested and approved" before a
+version carrying it can publish. The very next deploy (`vantora-8`, no extension
+changes beyond an auth fix) released normally with no such warning. Unclear whether
+that block only fires once per capability-introduction or whether approval happened
+in the background; either way, a released version is not the same claim as "verified
+working" — nothing here has been exercised against a live checkout.
+
+## Cross-cutting fixes from reviewing another Shopify/Laravel app's billing + checkout code
+
+Compared Vantora's billing and checkout-extension code against a separate, more
+mature Shopify+Laravel app in this environment (not copied from — used to sanity-check
+Vantora's own, independently-written code, then verified anything non-obvious against
+shopify.dev directly rather than trusting either app blindly). Found and fixed four
+real issues:
+
+1. **Offline access tokens now expire and weren't being refreshed.** Verified against
+   shopify.dev (not just the reference app): new public apps must request expiring
+   tokens (`expiring=1`) -- a 1-hour access token + 90-day refresh token -- and
+   Vantora's OAuth callback was storing a token as if it were permanent, with no
+   refresh path at all. Fixed: `add_token_refresh_columns_to_shops_table` migration,
+   `Shop::needsTokenRefresh()`, `ShopifyAuthService::refreshAccessToken()`, and
+   `ShopifyApiClient` now refreshes transparently before every call. This was a
+   ticking bug -- API calls would have started failing outright once the first
+   token expired, silently, some time after install.
+2. **Billing had `test: false` hardcoded** in the `appSubscriptionCreate` mutation.
+   Development stores (the only kind installed so far) silently refuse non-test
+   charges, so billing likely couldn't have been tested at all as it stood. Fixed:
+   `config('shopify.billing_test_mode')`, defaulting true, wired as a GraphQL
+   variable instead of a literal.
+3. **`thank-you-blocks` and `post-purchase-upsell` backend endpoints were fully
+   public**, trusting a client-supplied `shop` field with no verification. Checked
+   whether either extension surface actually has a way to authenticate itself:
+   checkout/thank-you extensions do (`shopify.sessionToken.get()`, confirmed in
+   `@shopify/ui-extensions`'s own types); the legacy post-purchase extension API does
+   not (confirmed absent from `@shopify/post-purchase-ui-extensions`'s types) so it
+   correctly stays public. Fixed the one that could be fixed:
+   `VerifyShopifyExtensionSessionToken` (deliberately skips the `aud` claim check
+   `VerifyShopifySessionToken` enforces for the embedded admin app, since it's
+   unconfirmed whether an extension-issued token carries the same `aud` -- a wrong
+   strict check fails silently, and that's worse than the looser check), wired into
+   `/thank-you/*`, extension updated to attach the token.
+4. **API version mismatch**: the backend's Admin GraphQL calls were pinned to
+   `2026-01` while every field used in this session (functions, Checkout UI
+   Extensions) was checked against `2026-07`. Aligned `SHOPIFY_API_VERSION` (backend
+   + Railway vars) and `shopify.app.toml`'s webhook `api_version` to `2026-07` to
+   match the extensions.
+
+Also confirmed as **already correct** rather than changed: `purchase.thank-you.block.render`
+as the Thank You page target, `shopify.orderConfirmation.value.order.id`, and the
+overall shape of the webhook-driven billing sync -- the reference app's `Subscription`
+sync additionally cancels other stale-`active` rows when a new one activates (handles
+a plan switch whose own webhook arrived out of order); adopted that same fix in
+`BillingService::activateFromWebhook` since Vantora's `Shop::subscription()` relation
+has the identical latent gap.
 
 ## Phase 1 — Foundation and theme tools (weeks 1-3): **scaffolded**
 

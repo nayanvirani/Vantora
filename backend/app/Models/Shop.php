@@ -14,6 +14,9 @@ class Shop extends Model
     protected $fillable = [
         'domain',
         'access_token',
+        'refresh_token',
+        'access_token_expires_at',
+        'refresh_token_expires_at',
         'shopify_plan',
         'is_plus',
         'theme_id',
@@ -25,6 +28,9 @@ class Shop extends Model
 
     protected $casts = [
         'access_token' => 'encrypted',
+        'refresh_token' => 'encrypted',
+        'access_token_expires_at' => 'datetime',
+        'refresh_token_expires_at' => 'datetime',
         'is_plus' => 'boolean',
         'scopes' => 'array',
         'installed_at' => 'datetime',
@@ -33,7 +39,19 @@ class Shop extends Model
 
     protected $hidden = [
         'access_token',
+        'refresh_token',
     ];
+
+    /**
+     * True once the access token is expired or close enough to expiring
+     * (60s buffer) that it should be refreshed before use. A shop with no
+     * expiry recorded predates the expiring-token migration and is treated
+     * as needing a refresh on next use rather than assumed still valid.
+     */
+    public function needsTokenRefresh(): bool
+    {
+        return $this->refresh_token && (! $this->access_token_expires_at || now()->addSeconds(60)->isAfter($this->access_token_expires_at));
+    }
 
     public function subscription(): HasOne
     {

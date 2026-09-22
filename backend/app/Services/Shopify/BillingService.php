@@ -4,6 +4,7 @@ namespace App\Services\Shopify;
 
 use App\Models\Shop;
 use App\Models\Subscription;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Wraps the Shopify Billing API (appSubscriptionCreate) so a plan choice
@@ -18,12 +19,13 @@ class BillingService
             $returnUrl: URL!
             $trialDays: Int!
             $price: Decimal!
+            $test: Boolean!
         ) {
             appSubscriptionCreate(
                 name: $name
                 returnUrl: $returnUrl
                 trialDays: $trialDays
-                test: false
+                test: $test
                 lineItems: [
                     {
                         plan: {
@@ -59,6 +61,9 @@ class BillingService
             'returnUrl' => $returnUrl,
             'trialDays' => $planConfig['trial_days'],
             'price' => (string) $planConfig['price'],
+            // Development stores silently refuse non-test charges -- see
+            // config/shopify.php for why this can't just be false here.
+            'test' => config('shopify.billing_test_mode'),
         ])->json('data.appSubscriptionCreate');
 
         if (! empty($response['userErrors'])) {
@@ -85,9 +90,28 @@ class BillingService
             return;
         }
 
-        Subscription::query()
-            ->where('shop_id', $shop->id)
-            ->where('shopify_charge_id', $chargeId)
-            ->update(['status' => $status]);
+        DB::transaction(function () use ($shop, $chargeId, $status) {
+            Subscription::query()
+                ->where('shop_id', $shop->id)
+                ->where('shopify_charge_id', $chargeId)
+                ->update(['status' => $status]);
+
+            // Shopify only ever has one subscription active per shop --
+            // when this one activates, any other row still marked active
+            // is a stale prior plan (a switch whose own "cancelled"
+            // webhook never arrived, or arrived out of order) and must not
+            // keep gating currentPlan()/PlanGateService as if it were
+            // current. hasOne('subscription')->latestOfMany() only looks
+            // at recency, not status, so a stale active row from before a
+            // plan switch would otherwise outrank the real one whenever it
+            // happens to be newer.
+            if ($status === 'active') {
+                Subscription::query()
+                    ->where('shop_id', $shop->id)
+                    ->where('shopify_charge_id', '!=', $chargeId)
+                    ->where('status', 'active')
+                    ->update(['status' => 'cancelled']);
+            }
+        });
     }
 }
