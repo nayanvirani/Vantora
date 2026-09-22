@@ -8,7 +8,12 @@ window.VantoraAnalytics = window.VantoraAnalytics || {
   report: function (type, featureType) {
     if (!window.Shopify || !Shopify.shop) return;
 
-    fetch('/pixel/events', {
+    // Must be absolute: this script runs on the shop's own storefront
+    // domain, and a relative '/pixel/events' resolves there instead of
+    // the backend -- 404s every time (confirmed live in a merchant's
+    // browser console), silently losing every impression/click this file
+    // was supposed to report for all 7 theme blocks.
+    fetch('https://vantora-production.up.railway.app/pixel/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       keepalive: true,
