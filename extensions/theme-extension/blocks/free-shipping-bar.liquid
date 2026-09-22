@@ -29,8 +29,11 @@
 
 {% comment %}
   "top" is a sitewide banner by design. "cart" is gated to the cart page,
-  same as cart-goal-tracker.liquid; "cart_drawer" renders as a floating
-  widget since this block can't reach inside the theme's own drawer markup.
+  same as cart-goal-tracker.liquid. "cart_drawer" tries to physically move
+  into the theme's own drawer markup (see the script below) -- verified
+  against this store's actual theme (Dawn): `#CartDrawer .drawer__inner`.
+  Not a documented cross-theme standard, so it floats in place on any
+  other theme instead.
 {% endcomment %}
 {% if position == 'cart' and template != 'cart' %}
   {% comment %} Not on the cart page -- render nothing. {% endcomment %}
@@ -60,6 +63,13 @@
   (function () {
     var el = document.getElementById('vantora-shipping-bar');
     if (!el) return;
+
+    if (el.classList.contains('vantora-shipping-bar--cart_drawer')) {
+      // Best-effort: verified Dawn structure only (see comment above) --
+      // falls back to floating in place on any other theme.
+      var drawerInner = document.querySelector('#CartDrawer .drawer__inner');
+      if (drawerInner) drawerInner.insertBefore(el, drawerInner.firstChild);
+    }
 
     if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'shipping_bar');
 
@@ -105,8 +115,8 @@
   "target": "body",
   "settings": [
     { "type": "number", "id": "threshold", "label": "Free shipping threshold", "default": 50 },
-    { "type": "select", "id": "position", "label": "Position", "default": "top",
-      "options": [ { "value": "top", "label": "Page top" }, { "value": "cart", "label": "Cart page" }, { "value": "cart_drawer", "label": "Cart drawer" } ] },
+    { "type": "select", "id": "position", "label": "Position", "default": "cart",
+      "options": [ { "value": "cart", "label": "Cart page" }, { "value": "cart_drawer", "label": "Cart drawer" }, { "value": "top", "label": "Page top (every page)" } ] },
     { "type": "text", "id": "progress_message", "label": "Progress message", "default": "Add %%AMOUNT%% more for free shipping!" },
     { "type": "text", "id": "success_message", "label": "Success message", "default": "You've unlocked free shipping!" },
     { "type": "color", "id": "background_color", "label": "Background color", "default": "#f4f4f4" },

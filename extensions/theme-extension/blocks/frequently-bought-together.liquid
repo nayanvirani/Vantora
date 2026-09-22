@@ -31,6 +31,7 @@
   </style>
 
   <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+  <script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
   <script>
     (function () {
       var root = document.getElementById('vantora-fbt');
@@ -66,14 +67,7 @@
           footerEl.querySelector('.vantora-fbt__add').addEventListener('click', function () {
             if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'fbt');
             var items = picks.map(function (p) { return { id: p.variant_id, quantity: 1, properties: { _vantora_source: 'fbt' } }; });
-            fetch('/cart/add.js', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: items }),
-            }).then(function () {
-              document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
-              document.dispatchEvent(new CustomEvent('cart:refresh'));
-            });
+            VantoraCart.add({ items: items }).catch(function (err) { console.error('Vantora FBT add failed', err); });
           });
         })
         .catch(function (err) { console.error('Vantora FBT failed to load', err); });

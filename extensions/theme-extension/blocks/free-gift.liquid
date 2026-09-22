@@ -19,6 +19,7 @@
   refresh and corrects it back, rather than preventing the click itself.
 {% endcomment %}
 <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
 <script>
   (function () {
     var offers = [];
@@ -77,19 +78,13 @@
 
           if (!giftLine) {
             busy = true;
-            fetch('/cart/add.js', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: eligible.gift_variant_id,
-                quantity: 1,
-                properties: { _vantora_gift: '1', _vantora_source: 'free_gift' },
-              }),
-            })
+            VantoraCart.add(
+              { id: eligible.gift_variant_id, quantity: 1, properties: { _vantora_gift: '1', _vantora_source: 'free_gift' } },
+              { openDrawer: false }
+            )
               .then(function () {
                 busy = false;
                 if (window.VantoraAnalytics) VantoraAnalytics.report('impression', 'free_gift');
-                document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
               })
               .catch(function (err) { busy = false; console.error('Vantora free gift add failed', err); });
           } else if (giftLine.quantity !== 1) {

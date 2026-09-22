@@ -117,6 +117,7 @@
   </style>
 
   <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+  <script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
   <script>
     (function () {
       var bar = document.getElementById('vantora-sticky-atc');
@@ -148,13 +149,11 @@
         e.preventDefault();
         if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'sticky_atc');
         var formData = new FormData(this);
-        fetch('/cart/add.js', { method: 'POST', body: formData })
-          .then(function (res) { return res.json(); })
-          .then(function () {
-            document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
-            document.dispatchEvent(new CustomEvent('cart:refresh'));
-          })
-          .catch(function (err) { console.error('Vantora sticky ATC add failed', err); });
+        VantoraCart.add({
+          id: formData.get('id'),
+          quantity: 1,
+          properties: { _vantora_source: formData.get('properties[_vantora_source]') },
+        }).catch(function (err) { console.error('Vantora sticky ATC add failed', err); });
       });
     })();
   </script>

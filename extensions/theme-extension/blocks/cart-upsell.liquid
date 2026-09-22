@@ -4,26 +4,44 @@
   AI-suggested) and reach this block two ways: the picks themselves come
   live from the app's public recommendations endpoint (keyed by the
   current cart's product IDs, so they stay fresh without a theme deploy);
-  heading/appearance come from the `vantora` shop metafield (written by
-  ThemeSettingsSyncService), falling back to this block's Theme Editor
-  settings -- see sticky-add-to-cart.liquid for why that's a whole-object
-  fallback rather than merged field-by-field.
+  heading/appearance/position come from the `vantora` shop metafield
+  (written by ThemeSettingsSyncService), falling back to this block's
+  Theme Editor settings -- see sticky-add-to-cart.liquid for why that's a
+  whole-object fallback rather than merged field-by-field.
+
+  A merchant reported this always showing everywhere rather than staying
+  in the cart. "cart" is gated server-side (only renders when
+  template == 'cart', same as free-shipping-bar.liquid/
+  cart-goal-tracker.liquid). "cart_drawer" can't be gated that way (a
+  drawer can open from any page in most themes), so instead the script
+  below tries to physically relocate this block into the theme's own
+  drawer markup once it's found -- verified against this store's actual
+  theme (Dawn): `<cart-drawer>` custom element, contents inside
+  `#CartDrawer .drawer__inner`. That's Dawn-specific, not a documented
+  cross-theme standard (Shopify defines no such standard), so on any
+  other theme it falls back to floating in place, same as before.
 {% endcomment %}
 {% assign v = shop.metafields.vantora.cart_upsell.value %}
 {% if v %}
   {% assign heading = v.heading %}
   {% assign max_items = v.max_items %}
   {% assign accent_color = v.accent_color %}
+  {% assign position = v.position | default: 'cart' %}
 {% else %}
   {% assign heading = block.settings.heading %}
   {% assign max_items = block.settings.max_items %}
   {% assign accent_color = block.settings.accent_color %}
+  {% assign position = block.settings.position | default: 'cart' %}
 {% endif %}
 
+{% if position == 'cart' and template != 'cart' %}
+  {% comment %} Not on the cart page -- render nothing. {% endcomment %}
+{% else %}
 <div
   id="vantora-cart-upsell"
   class="vantora-cart-upsell"
   data-max-items="{{ max_items }}"
+  data-position="{{ position }}"
   style="--vantora-upsell-accent: {{ accent_color }};"
   {{ block.shopify_attributes }}
 >
@@ -53,10 +71,18 @@
 </style>
 
 <script src="{{ 'vantora-analytics.js' | asset_url }}" defer></script>
+<script src="{{ 'vantora-cart.js' | asset_url }}" defer></script>
 <script>
   (function () {
     var root = document.getElementById('vantora-cart-upsell');
     if (!root) return;
+
+    if (root.dataset.position === 'cart_drawer') {
+      // Best-effort: known Dawn structure only (see comment above) -- if
+      // it's not found, this stays where the app embed already rendered it.
+      var drawerInner = document.querySelector('#CartDrawer .drawer__inner');
+      if (drawerInner) drawerInner.appendChild(root);
+    }
 
     var maxItems = parseInt(root.dataset.maxItems, 10) || 3;
     var template = document.getElementById('vantora-cart-upsell-item-template');
@@ -82,13 +108,7 @@
         node.querySelector('.vantora-cart-upsell__price').textContent = product.price;
         node.querySelector('.vantora-cart-upsell__add').addEventListener('click', function () {
           if (window.VantoraAnalytics) VantoraAnalytics.report('click', 'cart_upsell');
-          fetch('/cart/add.js', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: product.variant_id, quantity: 1, properties: { _vantora_source: 'cart_upsell' } }),
-          }).then(function () {
-            document.dispatchEvent(new CustomEvent('vantora:cart-updated'));
-            document.dispatchEvent(new CustomEvent('cart:refresh'));
+          VantoraCart.add({ id: product.variant_id, quantity: 1, properties: { _vantora_source: 'cart_upsell' } }).then(function () {
             refresh();
           });
         });
@@ -113,6 +133,7 @@
     document.addEventListener('cart:refresh', refresh);
   })();
 </script>
+{% endif %}
 
 {% schema %}
 {
@@ -121,6 +142,8 @@
   "settings": [
     { "type": "text", "id": "heading", "label": "Heading", "default": "You might also like" },
     { "type": "range", "id": "max_items", "label": "Max items shown", "min": 1, "max": 6, "default": 3 },
+    { "type": "select", "id": "position", "label": "Where it shows", "default": "cart",
+      "options": [ { "value": "cart", "label": "Cart page only" }, { "value": "cart_drawer", "label": "Cart drawer" } ] },
     { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#111111" }
   ]
 }

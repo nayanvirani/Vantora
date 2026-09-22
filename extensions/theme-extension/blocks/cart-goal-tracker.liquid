@@ -47,6 +47,7 @@
 <div
   id="vantora-goal-tracker"
   class="vantora-goal-tracker"
+  data-position="{{ position }}"
   data-tiers='[
     {% if tier_1_threshold > 0 %}{"threshold": {{ tier_1_threshold }}, "label": {{ tier_1_label | json }}}{% endif %}
     {% if tier_2_threshold > 0 %},{"threshold": {{ tier_2_threshold }}, "label": {{ tier_2_label | json }}}{% endif %}
@@ -76,6 +77,13 @@
   (function () {
     var el = document.getElementById('vantora-goal-tracker');
     if (!el) return;
+
+    if (el.dataset.position === 'cart_drawer') {
+      // Best-effort: verified Dawn structure only (see free-shipping-bar.liquid) --
+      // falls back to floating in place on any other theme.
+      var drawerInner = document.querySelector('#CartDrawer .drawer__inner');
+      if (drawerInner) drawerInner.insertBefore(el, drawerInner.firstChild);
+    }
 
     var tiers;
     try {
