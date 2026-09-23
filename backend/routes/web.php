@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ShopController as AdminShopController;
 use App\Http\Controllers\Auth\ShopifyAuthController;
 use App\Http\Controllers\WebhookController;
@@ -39,7 +40,7 @@ Route::prefix('webhooks/shopify')->middleware('shopify.webhook')->group(function
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', function () {
         return auth('admin')->check()
-            ? redirect()->route('admin.shops.index')
+            ? redirect()->route('admin.dashboard')
             : redirect()->route('admin.login');
     })->name('home');
 
@@ -50,6 +51,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware('auth:admin')->group(function () {
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/shops', [AdminShopController::class, 'index'])->name('shops.index');
         Route::get('/shops/{shop}', [AdminShopController::class, 'show'])->name('shops.show');
