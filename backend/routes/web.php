@@ -37,6 +37,12 @@ Route::prefix('webhooks/shopify')->middleware('shopify.webhook')->group(function
 // 'admin' guard). Not an embedded Shopify surface, so this is plain
 // server-rendered Blade, not the Polaris/App Bridge SPA.
 Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', function () {
+        return auth('admin')->check()
+            ? redirect()->route('admin.shops.index')
+            : redirect()->route('admin.login');
+    })->name('home');
+
     Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [AdminAuthController::class, 'login'])->name('login.attempt');
