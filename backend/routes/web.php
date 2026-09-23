@@ -2,14 +2,24 @@
 
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\PageController as AdminPageController;
+use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\ShopController as AdminShopController;
 use App\Http\Controllers\Auth\ShopifyAuthController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\PageShowController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [LandingController::class, 'index'])->name('landing');
+
+// Named convenience routes for the pages the Shopify App Store review
+// (and merchants) expect at a stable, predictable path -- both just
+// resolve to the same Page-by-slug lookup as the generic route below.
+Route::get('/privacy', [PageShowController::class, 'show'])->name('pages.privacy')->defaults('slug', 'privacy');
+Route::get('/terms', [PageShowController::class, 'show'])->name('pages.terms')->defaults('slug', 'terms');
+Route::get('/faq', [PageShowController::class, 'show'])->name('pages.faq')->defaults('slug', 'faq');
+Route::get('/pages/{slug}', [PageShowController::class, 'show'])->name('pages.show');
 
 // Shopify OAuth install flow.
 Route::get('/auth', [ShopifyAuthController::class, 'install'])->name('shopify.auth.install');
@@ -59,5 +69,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/shops/{shop}/pause', [AdminShopController::class, 'pause'])->name('shops.pause');
         Route::post('/shops/{shop}/unpause', [AdminShopController::class, 'unpause'])->name('shops.unpause');
         Route::post('/shops/{shop}/plan-override', [AdminShopController::class, 'overridePlan'])->name('shops.plan-override');
+
+        // Display data only -- Shopify Managed Pricing is still what
+        // actually charges a shop; see Plan model docblock.
+        Route::resource('plans', AdminPlanController::class)->except('show');
+
+        // General-purpose content pages (Privacy, Terms, FAQ, anything
+        // else) -- rendered publicly by PageShowController.
+        Route::resource('pages', AdminPageController::class)->except('show');
     });
 });

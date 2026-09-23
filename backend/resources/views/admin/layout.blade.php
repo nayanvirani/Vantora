@@ -19,6 +19,8 @@
                         $navItems = [
                             ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'label' => 'Dashboard'],
                             ['route' => 'admin.shops.index', 'match' => 'admin.shops.*', 'label' => 'Shops'],
+                            ['route' => 'admin.plans.index', 'match' => 'admin.plans.*', 'label' => 'Plans'],
+                            ['route' => 'admin.pages.index', 'match' => 'admin.pages.*', 'label' => 'Pages'],
                         ];
                     @endphp
                     @foreach ($navItems as $item)

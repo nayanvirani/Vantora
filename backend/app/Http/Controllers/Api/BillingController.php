@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -29,5 +30,17 @@ class BillingController extends Controller
         return response()->json([
             'url' => "https://admin.shopify.com/store/{$storeHandle}/charges/{$appHandle}/pricing_plans",
         ]);
+    }
+
+    /**
+     * Display data only (admin-managed Plan rows) for the future embedded
+     * billing screen -- Shopify Managed Pricing, not this app, decides
+     * what a shop is actually charged and grants.
+     */
+    public function plans(): JsonResponse
+    {
+        return response()->json(
+            Plan::where('is_active', true)->orderBy('sort_order')->get(['name', 'handle', 'price', 'features'])
+        );
     }
 }

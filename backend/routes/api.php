@@ -10,4 +10,5 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('shopify.session')->group(function () {
     Route::get('/shop', [ShopController::class, 'show']);
     Route::get('/billing/pricing-plans-url', [BillingController::class, 'pricingPlansUrl']);
+    Route::get('/billing/plans', [BillingController::class, 'plans']);
 });
