@@ -14,7 +14,12 @@ subpath = "vantora"
 prefix = "apps"
 
 [access_scopes]
-scopes = "read_products,write_products,read_themes,read_content,read_discounts,write_discounts,read_orders,write_orders,read_metaobjects,write_metaobjects,write_pixels,read_customer_events"
+# Phase 1 scope only (spec section 9) -- read_products/read_themes for
+# audit and theme-compatibility groundwork. Every other scope this app
+# will eventually need (write_products for the AI optimizer, discount/
+# metafield/pixel scopes for later phases) gets added when that phase
+# actually starts, not requested up front.
+scopes = "read_products,read_themes"
 
 [auth]
 redirect_urls = [
@@ -27,6 +32,38 @@ redirect_urls = [
 # risks a webhook payload shape or GraphQL field that was verified against
 # one version silently not matching what's actually delivered/available.
 api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/app-uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = ["app_subscriptions/update"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/app-subscriptions-update"
+
+  [[webhooks.subscriptions]]
+  topics = ["shop/update"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/shop-update"
+
+  [[webhooks.subscriptions]]
+  topics = ["themes/publish"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/themes-publish"
+
+  [[webhooks.subscriptions]]
+  topics = ["themes/update"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/themes-update"
+
+  [[webhooks.subscriptions]]
+  topics = ["products/update"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/products-update"
+
+  [[webhooks.subscriptions]]
+  topics = ["products/delete"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/products-delete"
+
+  [[webhooks.subscriptions]]
+  topics = ["orders/create"]
+  uri = "https://vantora-production.up.railway.app/webhooks/shopify/orders-create"
 
   [[webhooks.subscriptions]]
   compliance_topics = ["customers/data_request"]
