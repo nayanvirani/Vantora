@@ -51,6 +51,13 @@
             </form>
         @endif
 
+        <form method="POST" action="{{ route('admin.shops.resync-plan', $shop) }}">
+            @csrf
+            <button type="submit" class="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-50">
+                Resync plan from Shopify
+            </button>
+        </form>
+
         <form method="POST" action="{{ route('admin.shops.plan-override', $shop) }}" class="flex items-center gap-2">
             @csrf
             <select name="plan" class="rounded-md border border-neutral-300 px-3 py-2 text-sm">

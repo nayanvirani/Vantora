@@ -20,7 +20,10 @@
                             ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'label' => 'Dashboard'],
                             ['route' => 'admin.shops.index', 'match' => 'admin.shops.*', 'label' => 'Shops'],
                             ['route' => 'admin.plans.index', 'match' => 'admin.plans.*', 'label' => 'Plans'],
+                            ['route' => 'admin.subscriptions.index', 'match' => 'admin.subscriptions.*', 'label' => 'Subscriptions'],
                             ['route' => 'admin.pages.index', 'match' => 'admin.pages.*', 'label' => 'Pages'],
+                            ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'label' => 'Settings'],
+                            ['route' => 'admin.profile.edit', 'match' => 'admin.profile.*', 'label' => 'Profile'],
                         ];
                     @endphp
                     @foreach ($navItems as $item)

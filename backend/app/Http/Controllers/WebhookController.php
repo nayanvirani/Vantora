@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shop;
-use App\Models\Subscription;
 use App\Models\WebhookEvent;
+use App\Services\Shopify\BillingService;
 use App\Services\Shopify\ShopProvisioningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +17,10 @@ use Illuminate\Http\Request;
  */
 class WebhookController extends Controller
 {
-    public function __construct(private readonly ShopProvisioningService $provisioning) {}
+    public function __construct(
+        private readonly ShopProvisioningService $provisioning,
+        private readonly BillingService $billing,
+    ) {}
 
     public function appUninstalled(Request $request): JsonResponse
     {
@@ -40,25 +43,7 @@ class WebhookController extends Controller
             return response()->json(['ok' => true]);
         }
 
-        $payload = $request->json('app_subscription', []);
-        $shopifyPlanName = $payload['name'] ?? null;
-        $status = strtolower((string) ($payload['status'] ?? ''));
-
-        $internalPlan = $shopifyPlanName
-            ? collect(config('shopify.plans'))->search(fn (array $plan) => strcasecmp($plan['name'], $shopifyPlanName) === 0)
-            : false;
-
-        if ($internalPlan === false) {
-            return response()->json(['ok' => true]);
-        }
-
-        Subscription::create([
-            'shop_id' => $shop->id,
-            'plan' => $internalPlan,
-            'shopify_charge_id' => $payload['admin_graphql_api_id'] ?? null,
-            'status' => $status === 'active' ? 'active' : $status,
-            'trial_ends_at' => $payload['trial_ends_on'] ?? null,
-        ]);
+        $this->billing->applyFromWebhook($shop, $request->json('app_subscription', []));
 
         return response()->json(['ok' => true]);
     }

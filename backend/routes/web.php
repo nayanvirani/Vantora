@@ -4,7 +4,10 @@ use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Admin\ShopController as AdminShopController;
+use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Auth\ShopifyAuthController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PageShowController;
@@ -69,6 +72,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/shops/{shop}/pause', [AdminShopController::class, 'pause'])->name('shops.pause');
         Route::post('/shops/{shop}/unpause', [AdminShopController::class, 'unpause'])->name('shops.unpause');
         Route::post('/shops/{shop}/plan-override', [AdminShopController::class, 'overridePlan'])->name('shops.plan-override');
+        Route::post('/shops/{shop}/resync-plan', [AdminShopController::class, 'resyncPlan'])->name('shops.resync-plan');
 
         // Display data only -- Shopify Managed Pricing is still what
         // actually charges a shop; see Plan model docblock.
@@ -77,5 +81,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // General-purpose content pages (Privacy, Terms, FAQ, anything
         // else) -- rendered publicly by PageShowController.
         Route::resource('pages', AdminPageController::class)->except('show');
+
+        // Read-only history -- every Subscription row ever created.
+        Route::get('/subscriptions', [AdminSubscriptionController::class, 'index'])->name('subscriptions.index');
+
+        Route::get('/settings', [AdminSettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
+
+        Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.update-password');
     });
 });

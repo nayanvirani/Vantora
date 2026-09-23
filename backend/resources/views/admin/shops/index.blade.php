@@ -3,7 +3,31 @@
 @section('title', 'Shops - Vantora Admin')
 
 @section('content')
-    <h1 class="mb-6 text-lg font-semibold">Shops ({{ $shops->total() }})</h1>
+    <h1 class="mb-4 text-lg font-semibold">Shops ({{ $shops->total() }})</h1>
+
+    <form method="GET" action="{{ route('admin.shops.index') }}" class="mb-4 flex flex-wrap items-center gap-2">
+        <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Search domain..."
+            class="rounded-md border border-neutral-300 px-3 py-1.5 text-sm">
+
+        <select name="status" class="rounded-md border border-neutral-300 px-3 py-1.5 text-sm">
+            <option value="">All statuses</option>
+            <option value="active" @selected(($filters['status'] ?? null) === 'active')>Active</option>
+            <option value="paused" @selected(($filters['status'] ?? null) === 'paused')>Paused</option>
+            <option value="uninstalled" @selected(($filters['status'] ?? null) === 'uninstalled')>Uninstalled</option>
+        </select>
+
+        <select name="plan" class="rounded-md border border-neutral-300 px-3 py-1.5 text-sm">
+            <option value="">All plans</option>
+            <option value="starter" @selected(($filters['plan'] ?? null) === 'starter')>Starter</option>
+            <option value="pro" @selected(($filters['plan'] ?? null) === 'pro')>Pro</option>
+        </select>
+
+        <button type="submit" class="rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800">Filter</button>
+
+        @if (array_filter($filters ?? []))
+            <a href="{{ route('admin.shops.index') }}" class="text-sm text-neutral-500 hover:underline">Clear</a>
+        @endif
+    </form>
 
     <div class="overflow-hidden rounded-lg border border-neutral-200 bg-white">
         <table class="w-full text-left text-sm">
