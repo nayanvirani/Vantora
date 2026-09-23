@@ -1,0 +1,11 @@
+# OS / editor
+.DS_Store
+*.swp
+.~lock.*#
+
+# Railway CLI local state
+.railway/
+
+# Shopify CLI local state
+.shopify/
+node_modules
