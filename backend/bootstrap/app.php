@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // verification (VerifyShopifyWebhookSignature) is the real auth.
         // api/* is already stateless/CSRF-exempt by Laravel's default
         // routing setup.
-        $middleware->validateCsrfTokens(except: [
+        $middleware->preventRequestForgery(except: [
             'webhooks/*',
         ]);
 
@@ -27,6 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'shopify.webhook' => VerifyShopifyWebhookSignature::class,
             'shopify.session' => VerifyShopifySessionToken::class,
         ]);
+
+        // Railway terminates TLS at its edge and forwards to the
+        // container over plain HTTP -- without trusting the proxy's
+        // X-Forwarded-Proto header, Laravel generates http:// URLs
+        // (redirects, route()) even though APP_URL is https://. Confirmed
+        // live: /admin/login's redirect came back as http:// before this.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
